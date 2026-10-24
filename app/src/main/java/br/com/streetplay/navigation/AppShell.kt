@@ -1,0 +1,76 @@
+package br.com.streetplay.navigation
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.streetplay.core.design.SPSidebar
+import br.com.streetplay.core.design.SPWallpapers
+import br.com.streetplay.features.about.AboutScreen
+import br.com.streetplay.features.applications.AppsScreen
+import br.com.streetplay.features.entertainment.EntertainmentScreen
+import br.com.streetplay.features.favorites.FavoritesScreen
+import br.com.streetplay.features.home.HomeScreen
+import br.com.streetplay.features.home.LauncherViewModel
+import br.com.streetplay.features.settings.SettingsScreen
+import br.com.streetplay.features.settings.SettingsViewModel
+import br.com.streetplay.features.store.StoreScreen
+import kotlinx.coroutines.delay
+
+@Composable
+fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel) {
+    var dest by rememberSaveable { mutableStateOf(Destination.HOME) }
+    val apps by vm.apps.collectAsStateWithLifecycle()
+    val shortcuts by vm.shortcuts.collectAsStateWithLifecycle()
+    val favorites by vm.favorites.collectAsStateWithLifecycle()
+    val recents by vm.recents.collectAsStateWithLifecycle()
+    val loading by vm.loading.collectAsStateWithLifecycle()
+    val prefs by settingsVm.prefs.collectAsStateWithLifecycle()
+
+    // BACK volta ao Início; no Início não faz nada (launcher não deve fechar).
+    BackHandler { if (dest != Destination.HOME) dest = Destination.HOME }
+
+    val contentFocus = remember { FocusRequester() }
+    LaunchedEffect(dest) { delay(80); runCatching { contentFocus.requestFocus() } }
+
+    val byPkg = remember(apps) { apps.associateBy { it.packageName } }
+    val wallpaper = SPWallpapers[prefs.wallpaper.coerceIn(SPWallpapers.indices)]
+
+    Box(Modifier.fillMaxSize().background(Brush.linearGradient(wallpaper.colors))) {
+        Row(Modifier.fillMaxSize()) {
+            SPSidebar(
+                items = Destination.entries.map { it.toSidebarItem() },
+                selectedId = dest.name,
+                onSelect = { dest = Destination.valueOf(it) },
+            )
+            Box(Modifier.weight(1f).fillMaxHeight().focusRequester(contentFocus).focusGroup()) {
+                when (dest) {
+                    Destination.HOME -> HomeScreen(
+                        shortcuts = shortcuts,
+                        favorites = favorites.mapNotNull { byPkg[it] },
+                        recents = recents.mapNotNull { byPkg[it] },
+                        totalApps = apps.size,
+                        onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
+                        onSettings = { dest = Destination.SETTINGS },
+                    )
+                    Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
+                    Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
+                    Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)
+                    Destination.STORE -> StoreScreen(shortcuts, vm::open, vm::openStoreListing)
+                    Destination.SETTINGS -> SettingsScreen(
+                        prefs, settingsVm::setWallpaper, settingsVm::setAccent, settingsVm::setAnimations,
+                        onManageFavorites = { dest = Destination.FAVORITES },
+                    )
+                    Destination.ABOUT -> AboutScreen()
+                }
+            }
+        }
+    }
+}
