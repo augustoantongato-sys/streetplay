@@ -2,6 +2,8 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -24,3 +26,11 @@ jobs:
         with:
           name: StreetPlay-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+      - name: Publicar APK na Release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk StreetPlay.apk
+          gh release delete v1.0.0 --yes --cleanup-tag || true
+          gh release create v1.0.0 StreetPlay.apk --title "STREET PLAY 1.0.0" --notes "APK debug instalável para Android TV."
