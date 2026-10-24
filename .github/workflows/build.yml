@@ -13,10 +13,13 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.9" }
-      - name: Testes unitários
-        run: gradle :app:testDebugUnitTest --no-daemon --stacktrace
-      - name: APK debug (instalável)
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Testes e APK debug
+        run: |
+          set +e
+          gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --continue --console=plain > build.log 2>&1
+          code=$?
+          grep -E "^e: |^w: .*(deprecat)|What went wrong|FAILED|error:" -A2 build.log | head -60 | awk '{printf "%s%%0A", $0}' | sed 's/^/::error title=Erros do build::/'; echo
+          exit $code
       - uses: actions/upload-artifact@v4
         with:
           name: StreetPlay-debug-apk
