@@ -38,19 +38,19 @@ fun SettingsScreen(
     ) {
         item { SPSectionTitle("Configurações") }
         item { SPText("Aparência", SPType.Label, color = SPColors.TextSecondary) }
-        item { SPSettingsItem("Papel de parede", { onWallpaper((wallpaper + 1) % SPWallpapers.size) }, "Pressione OK para trocar", SPWallpapers[wallpaper].name) }
-        item { SPSettingsItem("Cor de destaque", { onAccent((accent + 1) % SPAccents.size) }, "Tons oficiais da marca", SPAccents[accent].first) }
-        item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, "Desative em aparelhos mais lentos", if (prefs.animations) "Ligadas" else "Desligadas") }
+        item { SPSettingsItem("Papel de parede", { onWallpaper((wallpaper + 1) % SPWallpapers.size) }, subtitle = "Pressione OK para trocar", value = SPWallpapers[wallpaper].name) }
+        item { SPSettingsItem("Cor de destaque", { onAccent((accent + 1) % SPAccents.size) }, subtitle = "Tons oficiais da marca", value = SPAccents[accent].first) }
+        item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, subtitle = "Desative em aparelhos mais lentos", value = if (prefs.animations) "Ligadas" else "Desligadas") }
 
         item { SPText("Aplicativos", SPType.Label, color = SPColors.TextSecondary) }
-        item { SPSettingsItem("Gerenciar favoritos", onManageFavorites, "Reordenar e remover") }
+        item { SPSettingsItem("Gerenciar favoritos", onManageFavorites, subtitle = "Reordenar e remover") }
 
         item { SPText("Sistema", SPType.Label, color = SPColors.TextSecondary) }
         item { SPSettingsItem("Aparelho", {}, value = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}") }
         item { SPSettingsItem("Versão do Android", {}, value = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})") }
         item { SPSettingsItem("Resolução", {}, value = resolution(context)) }
         item { SPSettingsItem("Armazenamento disponível", {}, value = freeStorage()) }
-        item { SPSettingsItem("Definir Street Play como launcher", { system(Settings.ACTION_HOME_SETTINGS) }, "Depende do fabricante e da versão do Android") }
+        item { SPSettingsItem("Definir Street Play como launcher", { system(Settings.ACTION_HOME_SETTINGS) }, subtitle = "Depende do fabricante e da versão do Android") }
         item { SPSettingsItem("Configurações do Android", { system(Settings.ACTION_SETTINGS) }) }
         item { SPSettingsItem("Wi-Fi", { system(Settings.ACTION_WIFI_SETTINGS) }) }
         item { SPSettingsItem("Bluetooth", { system(Settings.ACTION_BLUETOOTH_SETTINGS) }) }

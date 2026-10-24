@@ -198,8 +198,8 @@ fun SPLogo(modifier: Modifier = Modifier, showWordmark: Boolean = true, size: In
                 .background(Brush.linearGradient(listOf(SPColors.OrangeSecondary, accent))),
         ) {
             Canvas(Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
+                val w = this.size.width
+                val h = this.size.height
                 val p = Path().apply {
                     moveTo(w * 0.38f, h * 0.27f)
                     lineTo(w * 0.38f, h * 0.73f)

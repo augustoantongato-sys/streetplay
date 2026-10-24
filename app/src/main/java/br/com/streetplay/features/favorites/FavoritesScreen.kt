@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import br.com.streetplay.core.design.*
 import br.com.streetplay.domain.InstalledApp
 import br.com.streetplay.features.applications.AppGrid
