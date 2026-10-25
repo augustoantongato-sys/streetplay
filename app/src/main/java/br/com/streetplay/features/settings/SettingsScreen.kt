@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import br.com.streetplay.core.common.openSystemScreen
 import br.com.streetplay.core.design.*
 import br.com.streetplay.core.storage.UserPrefs
