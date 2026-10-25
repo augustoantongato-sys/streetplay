@@ -13,8 +13,8 @@ android {
         applicationId = "br.com.streetplay"
         minSdk = 24
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.6.0"
+        versionCode = 10
+        versionName = "1.6.1"
         // Chave do TMDB vem do segredo do GitHub (ORG_GRADLE_PROJECT_TMDB_TOKEN). Vazia = seção de destaques some.
         buildConfigField("String", "TMDB_TOKEN", "\"${(project.findProperty("TMDB_TOKEN") as String?) ?: ""}\"")
     }

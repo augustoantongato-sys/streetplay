@@ -44,4 +44,23 @@ class NetworksTest {
         assertEquals(2, world.first { it.name == "BBC" }.channels.size)
         assertTrue(world.any { it.name == "Arte" && it.channels.size == 1 })
     }
+
+    @Test fun globoFamilyIncludesRegionalAffiliatesWithTheirStates() {
+        val list = listOf(
+            "TV Globo Sao Paulo", "TV Globo Minas", "TV Bahia", "TV Clube", "TV Diario Macapa", "TV Fronteira",
+            "TV Sul de Minas", "RBS TV Porto Alegre", "EPTV Central", "RPC TV Curitiba", "TV Gazeta", "TV Gazeta Alagoas", "Record Rio",
+        ).map { ch(it) }
+        val g = Networks.group(list)
+        val globo = g.first { it.name == "Globo" }
+        assertEquals(12, globo.channels.size)
+        assertTrue("TV Gazeta" !in globo.channels.map { it.name })          // a Gazeta de São Paulo é outra emissora
+        assertEquals(listOf("AL", "AP", "BA", "MG", "PI", "PR", "RS", "SP"), globo.states)
+    }
+
+    @Test fun stateOfRecognizesPraças() {
+        assertEquals("RS", Networks.stateOf(ch("RBS TV Porto Alegre")))
+        assertEquals("SC", Networks.stateOf(ch("RBS TV Florianopolis")))
+        assertEquals("MG", Networks.stateOf(ch("EPTV Sul de Minas")))
+        assertEquals(null, Networks.stateOf(ch("SBT Rio")))
+    }
 }
