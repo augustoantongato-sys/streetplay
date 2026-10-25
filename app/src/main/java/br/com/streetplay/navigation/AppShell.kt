@@ -51,7 +51,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     val liveFavs by liveVm.favorites.collectAsStateWithLifecycle()
     val liveLoading by liveVm.loading.collectAsStateWithLifecycle()
     val liveProgress by liveVm.progress.collectAsStateWithLifecycle()
-    val liveStats by liveVm.stats.collectAsStateWithLifecycle()
+    val liveStatus by liveVm.status.collectAsStateWithLifecycle()
     var playing by remember { mutableStateOf<Pair<List<LiveChannel>, Int>?>(null) }
     val accent = LocalAccent.current
     val lite = prefs.mode == AppMode.LITE
@@ -82,9 +82,9 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
             Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
             Destination.LIVE -> LiveScreen(
-                groups = liveGroups, filters = liveFilters, channels = liveChannels, favorites = liveFavs,
-                loading = liveLoading, progress = liveProgress, stats = liveStats,
-                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleShowAll = liveVm::toggleShowAll,
+                groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
+                loading = liveLoading, progress = liveProgress,
+                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onVisibleFrom = liveVm::checkFrom,
                 onPlay = { i -> playing = liveChannels to i }, onToggleFavorite = liveVm::toggleFavorite,
             )
             Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)

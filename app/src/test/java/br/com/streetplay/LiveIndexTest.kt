@@ -41,6 +41,17 @@ class LiveIndexTest {
 
     @Test fun picksBestStreamAvoidingGeoBlocked() = assertEquals("https://a/hd.m3u8", result.first().url)
 
+    @Test fun keepsOtherSourcesAsFallbackInOrder() {
+        val a = result.first()
+        assertEquals(listOf("https://a/hd.m3u8", "http://a/low.m3u8", "https://a/geo.m3u8").sorted(), a.options.map { it.url }.sorted())
+        assertEquals("https://a/hd.m3u8", a.options.first().url)
+        assertEquals(3, a.options.size)
+    }
+
+    @Test fun sortsWithoutAccents() {
+        assertTrue(LiveIndexBuilder.sortKey("Éxito") < LiveIndexBuilder.sortKey("Fox"))
+    }
+
     @Test fun picksUsableLogoNotSvg() = assertEquals("https://l/a-ok.png", result.first().logo)
 
     @Test fun missingCategoryBecomesUndefinedAndNoLogoIsNull() {

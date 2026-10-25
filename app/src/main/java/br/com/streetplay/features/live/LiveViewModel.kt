@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,10 +29,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
-data class LiveStats(val total: Int = 0, val alive: Int = 0, val dead: Int = 0, val checking: Boolean = false)
-data class LiveFilters(val group: String = "c:BR", val query: String = "", val showAll: Boolean = false)
+data class LiveFilters(val group: String = "c:BR", val query: String = "")
 
-/** Lista de canais no estilo IPTV: todos, favoritos, categorias e países, com busca. */
+/** Lista de canais no estilo IPTV: todos, favoritos, categorias e países, com busca. Nenhum canal é escondido. */
 class LiveViewModel(private val repo: CatalogRepository, private val prefs: PrefsStore) : ViewModel() {
     private val _all = MutableStateFlow<List<LiveChannel>>(emptyList())
     private val _loading = MutableStateFlow(false)
@@ -41,8 +41,10 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
     private val _filters = MutableStateFlow(LiveFilters())
     val filters: StateFlow<LiveFilters> = _filters.asStateFlow()
     private val _status = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    private val _checking = MutableStateFlow(false)
-    private var checkJob: Job? = null
+    /** url do canal -> responde? (só existe para os canais já verificados) */
+    val status: StateFlow<Map<String, Boolean>> = _status.asStateFlow()
+    private val gate = Semaphore(6)
+    private var windowJob: Job? = null
 
     val favorites: StateFlow<Set<String>> = prefs.liveFavorites.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
@@ -53,16 +55,9 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
         combine(_all, _filters.map { it.group }.distinctUntilChanged(), favorites) { all, g, favs -> filterGroup(all, g, favs) }
             .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val visible: StateFlow<List<LiveChannel>> = combine(baseList, _filters, _status) { base, f, st ->
-        var l = base
-        if (f.query.isNotBlank()) l = l.filter { it.name.contains(f.query.trim(), ignoreCase = true) }
-        if (!f.showAll) l = l.filter { st[it.url] != false }
-        l
+    val visible: StateFlow<List<LiveChannel>> = combine(baseList, _filters) { base, f ->
+        if (f.query.isBlank()) base else base.filter { it.name.contains(f.query.trim(), ignoreCase = true) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    val stats: StateFlow<LiveStats> = combine(baseList, _status, _checking) { base, st, chk ->
-        LiveStats(base.size, base.count { st[it.url] == true }, base.count { st[it.url] == false }, chk)
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, LiveStats())
 
     fun loadIfNeeded() { if (_all.value.isEmpty() && !_loading.value) reload() }
 
@@ -74,43 +69,28 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
             _loading.value = false
             val g = _filters.value.group
             if (g != "fav" && filterGroup(_all.value, g, favorites.value).isEmpty()) _filters.update { it.copy(group = "all") }
-            startCheck()
         }
     }
 
-    fun selectGroup(id: String) {
-        _filters.update { it.copy(group = id, query = "") }
-        startCheck()
-    }
-
+    fun selectGroup(id: String) { _filters.update { it.copy(group = id, query = "") } }
     fun setQuery(q: String) { _filters.update { it.copy(query = q) } }
-    fun toggleShowAll() { _filters.update { it.copy(showAll = !it.showAll) } }
     fun toggleFavorite(id: String) { viewModelScope.launch { prefs.toggleLiveFavorite(id) } }
 
-    /** Testa os canais do grupo aberto (até 500) e esconde os que não respondem. */
-    private fun startCheck() {
-        checkJob?.cancel()
-        checkJob = viewModelScope.launch {
-            val base = filterGroup(_all.value, _filters.value.group, favorites.value)
-            if (base.size > MAX_CHECK) return@launch
-            val pending = base.filter { it.url !in _status.value }
-            if (pending.isEmpty()) return@launch
-            _checking.value = true
-            try {
-                val gate = Semaphore(6)
-                coroutineScope {
-                    pending.map { ch ->
-                        async { gate.withPermit { val ok = StreamChecker.isAlive(ch); _status.update { it + (ch.url to ok) } } }
-                    }.awaitAll()
-                }
-                repo.saveStatus(_status.value)
-            } finally {
-                _checking.value = false
+    /** Verifica só os canais que estão na tela (e os próximos), conforme o usuário rola a lista. */
+    fun checkFrom(firstVisible: Int) {
+        windowJob?.cancel()
+        windowJob = viewModelScope.launch {
+            delay(500)
+            val slice = visible.value.drop(firstVisible).take(36).filter { it.url !in _status.value }
+            if (slice.isEmpty()) return@launch
+            coroutineScope {
+                slice.map { ch ->
+                    async { gate.withPermit { val ok = StreamChecker.isAlive(ch); _status.update { it + (ch.url to ok) } } }
+                }.awaitAll()
             }
+            repo.saveStatus(_status.value)
         }
     }
-
-    private companion object { const val MAX_CHECK = 500 }
 }
 
 internal fun filterGroup(all: List<LiveChannel>, group: String, favs: Set<String>): List<LiveChannel> = when {

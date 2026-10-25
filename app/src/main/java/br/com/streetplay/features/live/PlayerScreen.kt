@@ -42,6 +42,7 @@ fun PlayerScreen(channels: List<LiveChannel>, startIndex: Int, onClose: () -> Un
     var overlay by remember { mutableStateOf(true) }
     var tick by remember { mutableIntStateOf(0) }
     var typed by remember { mutableStateOf("") }
+    var source by remember { mutableIntStateOf(0) }
     val channel = channels[index]
     val focus = remember { FocusRequester() }
     val player = remember { ExoPlayer.Builder(context).build() }
@@ -54,19 +55,23 @@ fun PlayerScreen(channels: List<LiveChannel>, startIndex: Int, onClose: () -> Un
                     Player.STATE_BUFFERING -> if (status != Status.ERROR) status = Status.LOADING
                 }
             }
-            override fun onPlayerError(error: PlaybackException) { status = Status.ERROR; tick++ }
+            override fun onPlayerError(error: PlaybackException) {
+                // tenta a próxima fonte do mesmo canal antes de desistir
+                if (source < channels[index].options.lastIndex) source++ else { status = Status.ERROR; tick++ }
+            }
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener); player.release() }
     }
 
-    LaunchedEffect(index) {
+    LaunchedEffect(index, source) {
         status = Status.LOADING
+        val opt = channel.options[source.coerceIn(channel.options.indices)]
         val http = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true).setConnectTimeoutMs(10_000).setReadTimeoutMs(15_000)
-        channel.userAgent?.let { http.setUserAgent(it) }
-        channel.referrer?.let { http.setDefaultRequestProperties(mapOf("Referer" to it)) }
-        player.setMediaSource(DefaultMediaSourceFactory(http).createMediaSource(MediaItem.fromUri(channel.url)))
+        opt.userAgent?.let { http.setUserAgent(it) }
+        opt.referrer?.let { http.setDefaultRequestProperties(mapOf("Referer" to it)) }
+        player.setMediaSource(DefaultMediaSourceFactory(http).createMediaSource(MediaItem.fromUri(opt.url)))
         player.prepare()
         player.playWhenReady = true
         tick++
@@ -77,12 +82,12 @@ fun PlayerScreen(channels: List<LiveChannel>, startIndex: Int, onClose: () -> Un
     LaunchedEffect(typed) {
         if (typed.isNotEmpty()) {
             delay(1_500)
-            typed.toIntOrNull()?.let { n -> if (n in 1..channels.size) index = n - 1 }
+            typed.toIntOrNull()?.let { n -> if (n in 1..channels.size) { source = 0; index = n - 1 } }
             typed = ""
         }
     }
 
-    fun zap(delta: Int) { index = (index + delta + channels.size) % channels.size }
+    fun zap(delta: Int) { source = 0; index = (index + delta + channels.size) % channels.size }
 
     Box(
         Modifier.fillMaxSize().background(Color.Black).focusRequester(focus).focusable().onKeyEvent { ev ->
@@ -122,9 +127,9 @@ fun PlayerScreen(channels: List<LiveChannel>, startIndex: Int, onClose: () -> Un
                     SPText("${index + 1}  ·  ${channel.name}", SPType.Title, maxLines = 1)
                     SPText(
                         when (status) {
-                            Status.LOADING -> "Carregando…"
+                            Status.LOADING -> if (source > 0) "Tentando outra fonte (${source + 1}/${channel.options.size})…" else "Carregando…"
                             Status.PLAYING -> "Ao vivo"
-                            Status.ERROR -> "Canal indisponível agora. Use ▲ ▼ para trocar."
+                            Status.ERROR -> "Canal indisponível agora (testei ${channel.options.size} fonte(s)). Use Cima/Baixo para trocar."
                         },
                         SPType.Body, color = if (status == Status.ERROR) LocalAccent.current else SPColors.TextSecondary,
                     )

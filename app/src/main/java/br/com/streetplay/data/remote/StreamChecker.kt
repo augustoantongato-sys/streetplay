@@ -1,6 +1,7 @@
 package br.com.streetplay.data.remote
 
 import br.com.streetplay.domain.LiveChannel
+import br.com.streetplay.domain.StreamOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -8,15 +9,18 @@ import java.net.URL
 
 /** Testa se o endereço de um canal responde com vídeo/lista de reprodução (e não com erro ou página HTML). */
 object StreamChecker {
-    suspend fun isAlive(ch: LiveChannel): Boolean = withContext(Dispatchers.IO) {
+    /** O canal está "no ar" se QUALQUER uma das fontes responder. */
+    suspend fun isAlive(ch: LiveChannel): Boolean = ch.options.any { probe(it) }
+
+    private suspend fun probe(opt: StreamOption): Boolean = withContext(Dispatchers.IO) {
         var c: HttpURLConnection? = null
         try {
-            c = URL(ch.url).openConnection() as HttpURLConnection
+            c = URL(opt.url).openConnection() as HttpURLConnection
             c.connectTimeout = 8_000
             c.readTimeout = 8_000
             c.instanceFollowRedirects = true
-            c.setRequestProperty("User-Agent", ch.userAgent ?: "Mozilla/5.0 (Linux; Android 11; TV) StreetPlay")
-            ch.referrer?.let { c.setRequestProperty("Referer", it) }
+            c.setRequestProperty("User-Agent", opt.userAgent ?: "Mozilla/5.0 (Linux; Android 11; TV) StreetPlay")
+            opt.referrer?.let { c.setRequestProperty("Referer", it) }
             c.setRequestProperty("Range", "bytes=0-2047")
             if (c.responseCode !in 200..299) return@withContext false
             val head = c.inputStream.use { s ->

@@ -40,6 +40,9 @@ data class TrendingItem(
     val typeLabel: String get() = if (type == "tv") "Série" else "Filme"
 }
 
+/** Uma fonte de vídeo de um canal (os canais costumam ter várias). */
+data class StreamOption(val url: String, val userAgent: String? = null, val referrer: String? = null)
+
 data class LiveChannel(
     val id: String,
     val name: String,
@@ -51,7 +54,11 @@ data class LiveChannel(
     val referrer: String? = null,
     val quality: String? = null,
     val labels: List<String> = emptyList(),
-)
+    val alternates: List<StreamOption> = emptyList(),
+) {
+    /** Todas as fontes, da melhor para a pior. O player tenta uma por vez. */
+    val options: List<StreamOption> get() = listOf(StreamOption(url, userAgent, referrer)) + alternates
+}
 
 enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY }
 
