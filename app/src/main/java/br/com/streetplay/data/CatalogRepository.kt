@@ -33,16 +33,18 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
     suspend fun liveChannels(onProgress: (String) -> Unit): List<LiveChannel> = withContext(Dispatchers.Default) {
         cache.readFresh(INDEX_KEY, ONE_DAY)?.let { return@withContext LiveIndexCodec.decode(it) }
         try {
-            onProgress("Baixando a lista de canais (1/4)…")
+            onProgress("Baixando a lista de canais (1/5)…")
             val streams = IptvApi.streams()
-            onProgress("Baixando a lista de canais (2/4)…")
+            onProgress("Baixando a lista de canais (2/5)…")
             val withStreams = streams.mapTo(HashSet()) { it.channel }
             val blocked = IptvApi.blocklist()
             val channels = IptvApi.channels(withStreams)
-            onProgress("Baixando logos (3/4)…")
+            onProgress("Baixando logos (3/5)…")
             val logos = IptvApi.logos(channels.mapTo(HashSet()) { it.id })
-            onProgress("Organizando (4/4)…")
-            val list = LiveIndexBuilder.build(streams, channels, logos, blocked)
+            onProgress("Baixando a segunda fonte (4/5)…")
+            val extra = try { IptvApi.freeTv() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
+            onProgress("Organizando (5/5)…")
+            val list = LiveIndexBuilder.merge(LiveIndexBuilder.build(streams, channels, logos, blocked), extra, blocked)
             if (list.isNotEmpty()) cache.write(INDEX_KEY, LiveIndexCodec.encode(list))
             list
         } catch (e: CancellationException) {
@@ -62,7 +64,7 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         cache.write("status_all", status.entries.joinToString("\n") { (if (it.value) "1|" else "0|") + it.key })
 
     private companion object {
-        const val INDEX_KEY = "live_index_v3"
+        const val INDEX_KEY = "live_index_v4"
         const val SIX_HOURS = 6 * 60 * 60 * 1000L
         const val TWO_HOURS = 2 * 60 * 60 * 1000L
         const val ONE_DAY = 24 * 60 * 60 * 1000L

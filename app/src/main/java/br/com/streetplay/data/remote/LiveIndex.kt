@@ -2,6 +2,7 @@ package br.com.streetplay.data.remote
 
 import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.domain.StreamOption
+import br.com.streetplay.domain.isExternalUrl
 import java.text.Normalizer
 import kotlin.math.abs
 
@@ -13,6 +14,8 @@ data class RawChannel(
     val id: String, val name: String, val country: String, val categories: List<String>,
     val nsfw: Boolean, val closed: Boolean,
 )
+/** Entrada da lista curada Free-TV/IPTV. */
+data class FreeTvEntry(val id: String, val name: String, val logo: String?, val country: String, val group: String, val url: String)
 data class RawLogo(val channel: String, val url: String, val inUse: Boolean, val format: String?, val width: Int)
 
 /** Junta streams + canais + logos da API do IPTV-org em uma lista única, já filtrada. */
@@ -38,6 +41,38 @@ object LiveIndexBuilder {
             .sortedBy { sortKey(it.name) }
             .toList()
     }
+
+    /** Junta a lista curada da Free-TV: soma fontes a canais que já existem e acrescenta os que faltam. */
+    fun merge(base: List<LiveChannel>, extra: List<FreeTvEntry>, blocked: Set<String>): List<LiveChannel> {
+        val updated = LinkedHashMap<String, LiveChannel>()
+        base.forEach { updated[it.id] = it }
+        val keyToId = HashMap<String, String>()
+        base.forEach { keyToId.putIfAbsent(key(it.name, it.country), it.id) }
+        for (e in extra) {
+            if (e.id in blocked) continue
+            val external = isExternalUrl(e.url)
+            val targetId = if (e.id.isNotBlank() && updated.containsKey(e.id)) e.id else keyToId[key(e.name, e.country)]
+            if (targetId != null) {
+                val t = updated[targetId]!!
+                when {
+                    t.external && !external -> updated[targetId] = t.copy(url = e.url, userAgent = null, referrer = null, alternates = emptyList())
+                    !external && t.options.none { it.url == e.url } && t.options.size <= MAX_SOURCES ->
+                        updated[targetId] = t.copy(alternates = t.alternates + StreamOption(e.url))
+                }
+            } else {
+                val id = e.id.ifBlank { "ftv:" + key(e.name, e.country) }
+                if (updated.containsKey(id)) continue
+                updated[id] = LiveChannel(
+                    id = id, name = e.name, logo = e.logo, country = e.country,
+                    categories = if (e.group.equals("News", true)) listOf("news") else listOf("undefined"), url = e.url,
+                )
+                keyToId.putIfAbsent(key(e.name, e.country), id)
+            }
+        }
+        return updated.values.sortedBy { sortKey(it.name) }
+    }
+
+    private fun key(name: String, country: String) = sortKey(name) + "|" + country
 
     /** Ordem alfabética sem acentos ("Éxito" fica junto do E). */
     fun sortKey(name: String): String =

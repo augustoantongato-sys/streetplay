@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.net.NetworkCapabilities
 
 /** Abre uma tela nativa de configurações do Android. Retorna false se o aparelho não tiver a tela. */
@@ -21,3 +22,8 @@ fun Context.networkLabel(): String = runCatching {
         else -> "Conectado"
     }
 }.getOrDefault("Rede indisponível")
+
+/** Abre um link no app que o aparelho tiver para ele (ex.: YouTube). */
+fun Context.openUrl(url: String): Boolean = try {
+    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
+} catch (e: ActivityNotFoundException) { false } catch (e: SecurityException) { false }

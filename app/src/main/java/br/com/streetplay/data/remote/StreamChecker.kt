@@ -10,7 +10,7 @@ import java.net.URL
 /** Testa se o endereço de um canal responde com vídeo/lista de reprodução (e não com erro ou página HTML). */
 object StreamChecker {
     /** O canal está "no ar" se QUALQUER uma das fontes responder. */
-    suspend fun isAlive(ch: LiveChannel): Boolean = ch.options.any { probe(it) }
+    suspend fun isAlive(ch: LiveChannel): Boolean = ch.external || ch.options.any { probe(it) }
 
     private suspend fun probe(opt: StreamOption): Boolean = withContext(Dispatchers.IO) {
         var c: HttpURLConnection? = null

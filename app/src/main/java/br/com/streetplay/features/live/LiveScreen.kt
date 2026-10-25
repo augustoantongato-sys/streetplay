@@ -156,6 +156,7 @@ private fun ChannelRow(number: Int, ch: LiveChannel, alive: Boolean?, fav: Boole
             Spacer(Modifier.width(14.dp))
             SPText(ch.name, SPType.Body, Modifier.weight(1f), maxLines = 1)
             if (dead) SPText("Fora do ar", SPType.Caption, Modifier.padding(start = 8.dp))
+            else if (ch.external) SPText(if (ch.url.contains("twitch", true)) "Twitch" else "YouTube", SPType.Caption, Modifier.padding(start = 8.dp))
             else if (!lite && ch.quality != null) SPText(ch.quality, SPType.Caption, Modifier.padding(start = 8.dp))
             if (fav) { Spacer(Modifier.width(10.dp)); SPIcon(SPIconKind.FAVORITES, tint = accent, size = 16.dp) }
         }

@@ -13,6 +13,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import br.com.streetplay.core.common.openUrl
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.streetplay.core.design.LocalAccent
 import br.com.streetplay.core.design.SPHeader
@@ -54,6 +57,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     val liveStatus by liveVm.status.collectAsStateWithLifecycle()
     var playing by remember { mutableStateOf<Pair<List<LiveChannel>, Int>?>(null) }
     val accent = LocalAccent.current
+    val context = LocalContext.current
     val lite = prefs.mode == AppMode.LITE
 
     // BACK volta ao Início; no Início não faz nada (launcher não deve fechar).
@@ -85,7 +89,15 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                 groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
                 loading = liveLoading, progress = liveProgress,
                 onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onVisibleFrom = liveVm::checkFrom,
-                onPlay = { i -> playing = liveChannels to i }, onToggleFavorite = liveVm::toggleFavorite,
+                onPlay = { i ->
+                    val ch = liveChannels[i]
+                    if (ch.external) {
+                        if (!context.openUrl(ch.url)) Toast.makeText(context, "Instale o app do YouTube ou da Twitch para abrir este canal.", Toast.LENGTH_LONG).show()
+                    } else {
+                        val playable = liveChannels.filter { !it.external }
+                        playing = playable to playable.indexOfFirst { it.id == ch.id }.coerceAtLeast(0)
+                    }
+                }, onToggleFavorite = liveVm::toggleFavorite,
             )
             Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)
             Destination.STORE -> Unit

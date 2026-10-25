@@ -56,9 +56,15 @@ data class LiveChannel(
     val labels: List<String> = emptyList(),
     val alternates: List<StreamOption> = emptyList(),
 ) {
+    /** Canais que só existem no YouTube ou na Twitch: abrem no app deles, não no player do Street Play. */
+    val external: Boolean get() = isExternalUrl(url)
+
     /** Todas as fontes, da melhor para a pior. O player tenta uma por vez. */
     val options: List<StreamOption> get() = listOf(StreamOption(url, userAgent, referrer)) + alternates
 }
+
+fun isExternalUrl(url: String): Boolean =
+    url.contains("youtube.com", true) || url.contains("youtu.be", true) || url.contains("twitch.tv", true)
 
 enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY }
 

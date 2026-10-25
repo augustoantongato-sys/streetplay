@@ -65,6 +65,10 @@ object IptvApi {
         }
     }
 
+    /** Lista curada Free-TV/IPTV (segunda fonte). */
+    suspend fun freeTv(): List<FreeTvEntry> =
+        FreeTvParser.parse(Http.get("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8"))
+
     /** Canais removidos por pedido de direitos autorais ou conteúdo adulto: nunca listamos. */
     suspend fun blocklist(): Set<String> = Http.open(BASE + "blocklist.json") { input ->
         readArray(input) { r ->
