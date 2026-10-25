@@ -32,19 +32,20 @@ object IptvApi {
     suspend fun channels(keep: Set<String>): List<RawChannel> = Http.open(BASE + "channels.json") { input ->
         readArray(input) { r ->
             var id: String? = null; var name: String? = null; var country = ""
-            var cats = emptyList<String>(); var nsfw = false; var closed = false
+            var cats = emptyList<String>(); var nsfw = false; var closed = false; var network: String? = null
             r.beginObject()
             while (r.hasNext()) when (r.nextName()) {
                 "id" -> id = r.stringOrNull()
                 "name" -> name = r.stringOrNull()
                 "country" -> country = r.stringOrNull().orEmpty()
                 "categories" -> cats = r.stringList()
+                "network" -> network = r.stringOrNull()
                 "is_nsfw" -> nsfw = r.boolOrFalse()
                 "closed" -> closed = !r.stringOrNull().isNullOrBlank()
                 else -> r.skipValue()
             }
             r.endObject()
-            if (id != null && name != null && id in keep) RawChannel(id, name, country, cats, nsfw, closed) else null
+            if (id != null && name != null && id in keep) RawChannel(id, name, country, cats, nsfw, closed, network) else null
         }
     }
 

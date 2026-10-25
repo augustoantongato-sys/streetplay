@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
-data class LiveFilters(val group: String = "c:BR", val query: String = "")
+data class LiveFilters(val group: String = "c:BR", val query: String = "", val grouped: Boolean = true)
 
 /** Lista de canais no estilo IPTV: todos, favoritos, categorias e países, com busca. Nenhum canal é escondido. */
 class LiveViewModel(private val repo: CatalogRepository, private val prefs: PrefsStore) : ViewModel() {
@@ -72,16 +72,18 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
         }
     }
 
-    fun selectGroup(id: String) { _filters.update { it.copy(group = id, query = "") } }
+    /** Países abrem agrupados por emissora (Globo, SBT, Band...); as demais listas, em ordem alfabética. */
+    fun selectGroup(id: String) { _filters.update { it.copy(group = id, query = "", grouped = id.startsWith("c:")) } }
+    fun toggleGrouped() { _filters.update { it.copy(grouped = !it.grouped) } }
     fun setQuery(q: String) { _filters.update { it.copy(query = q) } }
     fun toggleFavorite(id: String) { viewModelScope.launch { prefs.toggleLiveFavorite(id) } }
 
-    /** Verifica só os canais que estão na tela (e os próximos), conforme o usuário rola a lista. */
-    fun checkFrom(firstVisible: Int) {
+    /** Verifica só os canais que estão na tela, conforme o usuário rola a lista. */
+    fun checkChannels(list: List<LiveChannel>) {
         windowJob?.cancel()
         windowJob = viewModelScope.launch {
             delay(500)
-            val slice = visible.value.drop(firstVisible).take(36).filter { it.url !in _status.value }
+            val slice = list.filter { !it.external && it.url !in _status.value }.take(40)
             if (slice.isEmpty()) return@launch
             coroutineScope {
                 slice.map { ch ->

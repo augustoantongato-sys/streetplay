@@ -55,6 +55,7 @@ data class LiveChannel(
     val quality: String? = null,
     val labels: List<String> = emptyList(),
     val alternates: List<StreamOption> = emptyList(),
+    val network: String? = null,
 ) {
     /** Canais que só existem no YouTube ou na Twitch: abrem no app deles, não no player do Street Play. */
     val external: Boolean get() = isExternalUrl(url)
@@ -65,6 +66,9 @@ data class LiveChannel(
 
 fun isExternalUrl(url: String): Boolean =
     url.contains("youtube.com", true) || url.contains("youtu.be", true) || url.contains("twitch.tv", true)
+
+/** Uma emissora e todas as variações dos seus canais (praças, notícias, esportes...). */
+data class NetworkGroup(val key: String, val name: String, val logo: String?, val channels: List<LiveChannel>, val rank: Int? = null)
 
 enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY }
 

@@ -64,7 +64,7 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         cache.write("status_all", status.entries.joinToString("\n") { (if (it.value) "1|" else "0|") + it.key })
 
     private companion object {
-        const val INDEX_KEY = "live_index_v4"
+        const val INDEX_KEY = "live_index_v5"
         const val SIX_HOURS = 6 * 60 * 60 * 1000L
         const val TWO_HOURS = 2 * 60 * 60 * 1000L
         const val ONE_DAY = 24 * 60 * 60 * 1000L

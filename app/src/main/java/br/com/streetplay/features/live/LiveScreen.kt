@@ -1,9 +1,9 @@
 package br.com.streetplay.features.live
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,19 +12,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.streetplay.core.design.*
+import br.com.streetplay.data.remote.Networks
 import br.com.streetplay.domain.GroupKind
 import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.domain.LiveGroup
+import br.com.streetplay.domain.NetworkGroup
 import kotlinx.coroutines.launch
 import java.text.Normalizer
 
-/** Tela de canais no estilo de um app de IPTV: grupos à esquerda, lista numerada e índice A–Z à direita. */
+private sealed interface Row {
+    val key: String
+    data class Net(val g: NetworkGroup, val open: Boolean) : Row { override val key = "n:${g.key}" }
+    data class Chan(val ch: LiveChannel, val nested: Boolean, val number: Int?) : Row { override val key = "c:${ch.id}" }
+}
+
+/** Canais no estilo IPTV: grupos à esquerda; à direita, emissoras como pastas (Globo, SBT, Band...) com todas as variações dentro. */
 @Composable
 fun LiveScreen(
     groups: List<LiveGroup>,
@@ -36,8 +45,9 @@ fun LiveScreen(
     progress: String,
     onSelectGroup: (String) -> Unit,
     onQuery: (String) -> Unit,
-    onVisibleFrom: (Int) -> Unit,
-    onPlay: (Int) -> Unit,
+    onToggleGrouped: () -> Unit,
+    onCheck: (List<LiveChannel>) -> Unit,
+    onPlay: (List<LiveChannel>, LiveChannel) -> Unit,
     onToggleFavorite: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -53,12 +63,34 @@ fun LiveScreen(
     val main = groups.filter { it.kind == GroupKind.ALL || it.kind == GroupKind.FAVORITES || it.id == "c:BR" }
     val cats = groups.filter { it.kind == GroupKind.CATEGORY }
     val countries = groups.filter { it.kind == GroupKind.COUNTRY && it.id != "c:BR" }
+
+    val nets = remember(channels, filters.grouped) { if (filters.grouped) Networks.group(channels) else emptyList() }
+    var expanded by remember(filters.group) { mutableStateOf(emptySet<String>()) }
+    val searching = filters.query.isNotBlank()
+    val rows = remember(nets, channels, expanded, filters.grouped, searching) {
+        buildList {
+            if (!filters.grouped) channels.forEachIndexed { i, c -> add(Row.Chan(c, false, i + 1)) }
+            else nets.forEach { g ->
+                if (g.channels.size == 1) add(Row.Chan(g.channels[0], false, null))
+                else {
+                    val open = searching || g.key in expanded
+                    add(Row.Net(g, open))
+                    if (open) g.channels.forEach { add(Row.Chan(it, true, null)) }
+                }
+            }
+        }
+    }
+    val playlist = remember(nets, channels, filters.grouped) { if (filters.grouped) nets.flatMap { it.channels } else channels }
+    val letters = remember(rows) { rowLetters(rows) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val letters = remember(channels) { buildLetterIndex(channels) }
 
-    LaunchedEffect(filters.group, filters.query) { listState.scrollToItem(0) }
-    LaunchedEffect(listState, channels) { snapshotFlow { listState.firstVisibleItemIndex }.collect { onVisibleFrom(it) } }
+    LaunchedEffect(filters.group, filters.query, filters.grouped) { listState.scrollToItem(0) }
+    LaunchedEffect(listState, rows) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collect { i ->
+            onCheck(rows.drop(i).take(40).mapNotNull { (it as? Row.Chan)?.ch })
+        }
+    }
 
     Row(
         modifier.fillMaxSize().padding(horizontal = if (lite) 40.dp else 26.dp).padding(top = 8.dp),
@@ -74,8 +106,15 @@ fun LiveScreen(
         }
 
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SPSearchField(filters.query, onQuery, "Buscar canal")
-            if (!lite) SPText("${channels.size} canais · Segure OK para favoritar · Os que estão fora do ar aparecem esmaecidos", SPType.Caption)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SPSearchField(filters.query, onQuery, "Buscar canal ou emissora", Modifier.weight(1f))
+                SPButton(if (filters.grouped) "Ver em lista" else "Ver por emissora", onToggleGrouped)
+            }
+            if (!lite) SPText(
+                if (filters.grouped) "${nets.size} emissoras · ${channels.size} canais · OK abre a emissora · Segure OK para favoritar"
+                else "${channels.size} canais · Segure OK para favoritar · Fora do ar aparece esmaecido",
+                SPType.Caption,
+            )
             if (channels.isEmpty()) {
                 SPEmptyState(
                     if (filters.group == "fav") "Nenhum favorito ainda" else "Nenhum canal aqui",
@@ -84,11 +123,21 @@ fun LiveScreen(
             } else {
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     LazyColumn(Modifier.weight(1f).fillMaxHeight(), state = listState, verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
-                        itemsIndexed(channels, key = { _, c -> c.id }) { i, c ->
-                            ChannelRow(i + 1, c, status[c.url], c.id in favorites, onClick = { onPlay(i) }, onLong = { onToggleFavorite(c.id) })
+                        items(rows, key = { it.key }) { row ->
+                            when (row) {
+                                is Row.Net -> NetworkRow(row) {
+                                    expanded = if (row.g.key in expanded) expanded - row.g.key else expanded + row.g.key
+                                }
+                                is Row.Chan -> Box(Modifier.padding(start = if (row.nested) 40.dp else 0.dp)) {
+                                    ChannelRow(
+                                        row.number, row.ch, status[row.ch.url], row.ch.id in favorites,
+                                        onClick = { onPlay(playlist, row.ch) }, onLong = { onToggleFavorite(row.ch.id) },
+                                    )
+                                }
+                            }
                         }
                     }
-                    if (channels.size > 40 && letters.size > 1) {
+                    if (rows.size > 30 && letters.size > 1) {
                         LazyColumn(Modifier.width(30.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(2.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
                             items(letters, key = { it.first }) { (letter, index) ->
                                 SPFocusIndicator(
@@ -106,6 +155,16 @@ fun LiveScreen(
             }
         }
     }
+}
+
+/** Primeira linha de cada letra, considerando só as linhas de nível principal (emissoras e canais soltos). */
+private fun rowLetters(rows: List<Row>): List<Pair<Char, Int>> {
+    val first = LinkedHashMap<Char, Int>()
+    rows.forEachIndexed { i, r ->
+        val name = when (r) { is Row.Net -> r.g.name; is Row.Chan -> if (r.nested) null else r.ch.name }
+        if (name != null) first.putIfAbsent(letterOf(name), i)
+    }
+    return first.entries.sortedBy { if (it.key == '#') 0.toChar() else it.key }.map { it.key to it.value }
 }
 
 /** Primeira posição de cada letra (A–Z; o resto vira "#"). */
@@ -139,8 +198,40 @@ private fun GroupRow(g: LiveGroup, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+/** A "pasta" de uma emissora: logo, nome, quantidade de canais e seta. */
 @Composable
-private fun ChannelRow(number: Int, ch: LiveChannel, alive: Boolean?, fav: Boolean, onClick: () -> Unit, onLong: () -> Unit) {
+private fun NetworkRow(row: Row.Net, onClick: () -> Unit) {
+    val accent = LocalAccent.current
+    SPFocusIndicator(
+        onClick = onClick, modifier = Modifier.fillMaxWidth().height(64.dp),
+        shape = RoundedCornerShape(14.dp), container = SPColors.Card, focusedContainer = SPColors.CardFocused, focusScale = 1.02f,
+    ) {
+        Row(Modifier.fillMaxSize().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            SPRemoteImage(row.g.logo, Modifier.size(42.dp), ContentScale.Fit) {
+                SPText(row.g.name.take(1).uppercase(), SPType.Title, Modifier.align(Alignment.Center), accent)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                SPText(row.g.name, TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SPColors.TextPrimary), maxLines = 1)
+                SPText("${row.g.channels.size} canais", SPType.Caption)
+            }
+            Canvas(Modifier.size(14.dp)) {
+                val w = size.width; val h = size.height
+                drawPath(
+                    Path().apply {
+                        if (row.open) { moveTo(0f, h * .25f); lineTo(w, h * .25f); lineTo(w / 2, h * .85f) }
+                        else { moveTo(w * .2f, 0f); lineTo(w * .85f, h / 2); lineTo(w * .2f, h) }
+                        close()
+                    },
+                    accent,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChannelRow(number: Int?, ch: LiveChannel, alive: Boolean?, fav: Boolean, onClick: () -> Unit, onLong: () -> Unit) {
     val accent = LocalAccent.current
     val lite = LocalLite.current
     val dead = alive == false
@@ -149,7 +240,7 @@ private fun ChannelRow(number: Int, ch: LiveChannel, alive: Boolean?, fav: Boole
         shape = RoundedCornerShape(12.dp), container = SPColors.TileBase, focusedContainer = SPColors.TileFocused, focusScale = 1.02f,
     ) {
         Row(Modifier.fillMaxSize().padding(horizontal = 14.dp).alpha(if (dead) 0.45f else 1f), verticalAlignment = Alignment.CenterVertically) {
-            SPText(number.toString().padStart(3, '0'), TextStyle(fontSize = 14.sp, color = SPColors.TextSecondary), Modifier.width(46.dp))
+            if (number != null) SPText(number.toString().padStart(3, '0'), TextStyle(fontSize = 14.sp, color = SPColors.TextSecondary), Modifier.width(46.dp))
             SPRemoteImage(ch.logo, Modifier.size(38.dp), ContentScale.Fit) {
                 SPText(ch.name.take(1).uppercase(), SPType.Label, Modifier.align(Alignment.Center), accent)
             }

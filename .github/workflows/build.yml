@@ -34,5 +34,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk StreetPlay.apk
-          gh release delete v1.5.0 --yes --cleanup-tag || true
-          gh release create v1.5.0 StreetPlay.apk --title "STREET PLAY 1.5.0" --notes "APK debug instalável para Android TV."
+          gh release delete v1.6.0 --yes --cleanup-tag || true
+          gh release create v1.6.0 StreetPlay.apk --title "STREET PLAY 1.6.0" --notes "APK debug instalável para Android TV."

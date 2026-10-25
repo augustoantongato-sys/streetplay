@@ -12,7 +12,7 @@ data class RawStream(
 )
 data class RawChannel(
     val id: String, val name: String, val country: String, val categories: List<String>,
-    val nsfw: Boolean, val closed: Boolean,
+    val nsfw: Boolean, val closed: Boolean, val network: String? = null,
 )
 /** Entrada da lista curada Free-TV/IPTV. */
 data class FreeTvEntry(val id: String, val name: String, val logo: String?, val country: String, val group: String, val url: String)
@@ -36,6 +36,7 @@ object LiveIndexBuilder {
                     categories = c.categories.ifEmpty { listOf("undefined") },
                     url = s.url, userAgent = s.userAgent, referrer = s.referrer, quality = s.quality, labels = s.labels,
                     alternates = list.drop(1).map { StreamOption(it.url, it.userAgent, it.referrer) },
+                    network = c.network?.ifBlank { null },
                 )
             }
             .sortedBy { sortKey(it.name) }
@@ -104,7 +105,7 @@ object LiveIndexCodec {
         listOf(
             c.id, c.name, c.country, c.categories.joinToString(","), c.logo.orEmpty(), c.url,
             c.userAgent.orEmpty(), c.referrer.orEmpty(), c.quality.orEmpty(), c.labels.joinToString(","),
-        ).joinToString("\t") { clean(it) } + "\t" + alts
+        ).joinToString("\t") { clean(it) } + "\t" + alts + "\t" + clean(c.network.orEmpty())
     }
 
     fun decode(text: String): List<LiveChannel> = text.lineSequence().mapNotNull { line ->
@@ -118,6 +119,7 @@ object LiveIndexCodec {
                 val f = e.split(FIELD)
                 StreamOption(f[0], f.getOrNull(1)?.ifBlank { null }, f.getOrNull(2)?.ifBlank { null })
             },
+            network = p.getOrNull(11)?.ifBlank { null },
         )
     }.toList()
 }

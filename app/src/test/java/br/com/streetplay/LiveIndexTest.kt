@@ -15,7 +15,7 @@ class LiveIndexTest {
         RawStream(ch, url, null, null, q, labels)
 
     private val channels = listOf(
-        RawChannel("A.br", "Canal A", "BR", listOf("news"), nsfw = false, closed = false),
+        RawChannel("A.br", "Canal A", "BR", listOf("news"), nsfw = false, closed = false, network = "Rede A"),
         RawChannel("B.br", "Canal B", "BR", emptyList(), nsfw = false, closed = false),
         RawChannel("C.br", "Adulto", "BR", listOf("xxx"), nsfw = true, closed = false),
         RawChannel("D.br", "Fechado", "BR", listOf("general"), nsfw = false, closed = true),
