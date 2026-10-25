@@ -23,6 +23,10 @@ fun LiveScreen(
     source: LiveSource,
     channels: List<LiveChannel>,
     loading: Boolean,
+    stats: LiveStats,
+    counts: Map<LiveSource, Int>,
+    showAll: Boolean,
+    onToggleShowAll: () -> Unit,
     onSelectSource: (LiveSource) -> Unit,
     onPlay: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -30,9 +34,20 @@ fun LiveScreen(
     Column(modifier.fillMaxSize().padding(horizontal = SPSpacing.xl).padding(top = SPSpacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SPSectionTitle("Canais ao vivo")
         LazyRow(horizontalArrangement = Arrangement.spacedBy(SPSpacing.sm), contentPadding = PaddingValues(vertical = 6.dp)) {
-            items(LiveSource.entries.toList()) { s -> SPButton(s.label, { onSelectSource(s) }, selected = s == source) }
+            items(LiveSource.entries.toList()) { s ->
+                SPButton(s.label + (counts[s]?.let { " ($it)" } ?: ""), { onSelectSource(s) }, selected = s == source)
+            }
+            if (stats.dead > 0) item { SPButton(if (showAll) "Ocultar fora do ar" else "Mostrar fora do ar", onToggleShowAll) }
         }
-        SPText("Canais públicos do projeto IPTV-org. Alguns podem estar fora do ar ou bloqueados na sua região.", SPType.Caption)
+        SPText(
+            when {
+                loading -> "Buscando a lista pública do IPTV-org…"
+                stats.checking -> "${stats.total} canais cadastrados · verificando… ${stats.alive} no ar, ${stats.dead} fora do ar"
+                else -> "${stats.total} canais cadastrados · ${stats.alive} no ar" +
+                    if (stats.dead > 0) " · ${stats.dead} fora do ar ${if (showAll) "(visíveis)" else "(ocultos)"}" else ""
+            },
+            SPType.Caption,
+        )
         when {
             loading -> SPEmptyState("Carregando canais…", "Buscando a lista pública")
             channels.isEmpty() -> SPEmptyState("Nenhum canal disponível", "Verifique a internet e tente de novo.")

@@ -45,7 +45,10 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     val prefs by settingsVm.prefs.collectAsStateWithLifecycle()
     val trending by discoverVm.trending.collectAsStateWithLifecycle()
     val liveSource by liveVm.source.collectAsStateWithLifecycle()
-    val liveChannels by liveVm.channels.collectAsStateWithLifecycle()
+    val liveChannels by liveVm.visible.collectAsStateWithLifecycle()
+    val liveStats by liveVm.stats.collectAsStateWithLifecycle()
+    val liveCounts by liveVm.counts.collectAsStateWithLifecycle()
+    val liveShowAll by liveVm.showAll.collectAsStateWithLifecycle()
     val liveLoading by liveVm.loading.collectAsStateWithLifecycle()
     var playing by remember { mutableStateOf<Pair<List<LiveChannel>, Int>?>(null) }
     val accent = LocalAccent.current
@@ -89,7 +92,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                         Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
                         Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
                         Destination.LIVE -> LiveScreen(
-                            liveSource, liveChannels, liveLoading, onSelectSource = liveVm::load,
+                            liveSource, liveChannels, liveLoading, liveStats, liveCounts, liveShowAll, liveVm::toggleShowAll, onSelectSource = liveVm::load,
                             onPlay = { i -> playing = liveChannels to i },
                         )
                         Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)

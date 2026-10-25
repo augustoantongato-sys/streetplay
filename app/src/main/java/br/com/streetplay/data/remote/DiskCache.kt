@@ -22,4 +22,11 @@ class DiskCache(private val dir: File) {
             if (f.exists()) f.readText() else null
         }
     }
+
+    suspend fun readFresh(key: String, maxAgeMs: Long): String? = withContext(Dispatchers.IO) {
+        val f = file(key)
+        if (f.exists() && System.currentTimeMillis() - f.lastModified() < maxAgeMs) f.readText() else null
+    }
+
+    suspend fun write(key: String, text: String) = withContext(Dispatchers.IO) { file(key).writeText(text) }
 }

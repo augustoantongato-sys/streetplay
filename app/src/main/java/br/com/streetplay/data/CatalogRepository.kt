@@ -30,7 +30,17 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         return runCatching { M3uParser.parse(text) }.getOrDefault(emptyList())
     }
 
+    /** Resultado da última checagem de canais (válido por 2 h): url -> no ar? */
+    suspend fun loadStatus(source: LiveSource): Map<String, Boolean> =
+        cache.readFresh("status_${source.name}", TWO_HOURS)?.lineSequence()
+            ?.mapNotNull { l -> if (l.length > 2 && (l[0] == '1' || l[0] == '0') && l[1] == '|') l.substring(2) to (l[0] == '1') else null }
+            ?.toMap() ?: emptyMap()
+
+    suspend fun saveStatus(source: LiveSource, status: Map<String, Boolean>) =
+        cache.write("status_${source.name}", status.entries.joinToString("\n") { (if (it.value) "1|" else "0|") + it.key })
+
     private companion object {
+        const val TWO_HOURS = 2 * 60 * 60 * 1000L
         const val SIX_HOURS = 6 * 60 * 60 * 1000L
         const val TWELVE_HOURS = 12 * 60 * 60 * 1000L
     }
