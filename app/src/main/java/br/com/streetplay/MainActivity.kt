@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.streetplay.core.common.LocalIconLoader
@@ -28,9 +30,14 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 launcherVm.messages.collect { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show() }
             }
-            SPTheme(prefs.accent, prefs.animations) {
-                CompositionLocalProvider(LocalIconLoader provides launcherVm::loadIcon) {
-                    AppShell(launcherVm, settingsVm)
+            // Tela de referência de 1280 dp de largura: o layout fica igual em 720p, 1080p ou 4K.
+            val dm = resources.displayMetrics
+            val density = Density(density = maxOf(dm.widthPixels, dm.heightPixels) / 1280f, fontScale = 1f)
+            CompositionLocalProvider(LocalDensity provides density) {
+                SPTheme(prefs.accent, prefs.animations) {
+                    CompositionLocalProvider(LocalIconLoader provides launcherVm::loadIcon) {
+                        AppShell(launcherVm, settingsVm)
+                    }
                 }
             }
         }

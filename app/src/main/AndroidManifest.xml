@@ -26,6 +26,8 @@
         <package android:name="com.disney.disneyplus" />
         <package android:name="com.spotify.tv.android" />
         <package android:name="com.spotify.music" />
+        <package android:name="com.wbd.stream" />
+        <package android:name="com.hbo.hbonow" />
         <package android:name="com.android.vending" />
     </queries>
 

@@ -8,7 +8,7 @@ import org.junit.Test
 class StreamingCatalogTest {
     private fun shortcut(id: String) = StreamingCatalog.all.first { it.id == id }
 
-    @Test fun hasSixOfficialShortcuts() = assertEquals(6, StreamingCatalog.all.size)
+    @Test fun hasSevenOfficialShortcuts() = assertEquals(7, StreamingCatalog.all.size)
 
     @Test fun prefersTvPackageWhenBothInstalled() =
         assertEquals("com.netflix.ninja", StreamingCatalog.resolve(shortcut("netflix")) { true })

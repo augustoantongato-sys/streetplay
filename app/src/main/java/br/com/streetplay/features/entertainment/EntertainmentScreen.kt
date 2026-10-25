@@ -27,7 +27,7 @@ fun EntertainmentScreen(
         modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = SPSpacing.xl, vertical = SPSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(SPSpacing.lg),
     ) {
-        item { SPSectionTitle("Filmes e séries") }
+        item { SPSectionTitle("Streaming") }
         item {
             SPCard {
                 SPText("Seus atalhos de entretenimento", SPType.Body)

@@ -16,6 +16,7 @@ data class StreamingShortcut(
     val id: String,
     val name: String,
     val packages: List<String>,
+    val brandColor: Long = 0xFFFF6A00,
 )
 
 data class ShortcutState(

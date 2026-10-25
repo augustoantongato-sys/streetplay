@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import br.com.streetplay.core.design.*
 
 @Composable
@@ -15,7 +16,7 @@ fun AboutScreen(modifier: Modifier = Modifier) {
     }
     Column(modifier.fillMaxSize().padding(SPSpacing.xl), verticalArrangement = Arrangement.spacedBy(SPSpacing.md)) {
         SPSectionTitle("Sobre")
-        SPLogo(size = 72)
+        SPLogo(Modifier.height(90.dp))
         SPText("Seu entretenimento. Do seu jeito.", SPType.Title, color = SPColors.TextSecondary)
         SPCard {
             SPText("Versão $version", SPType.Body)

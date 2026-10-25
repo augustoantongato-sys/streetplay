@@ -4,4 +4,4 @@ build/
 local.properties
 .idea/
 *.jks
-*.keystore
+!app/streetplay-debug.keystore

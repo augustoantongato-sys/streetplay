@@ -1,11 +1,13 @@
 package br.com.streetplay.features.home
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,55 +16,88 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import br.com.streetplay.R
 import br.com.streetplay.core.design.*
 import br.com.streetplay.domain.InstalledApp
 import br.com.streetplay.domain.ShortcutState
 import kotlinx.coroutines.delay
-import java.util.Calendar
+
+private val Gap = 11.dp
+private val RowSectionTitle = TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White)
 
 @Composable
 fun HomeScreen(
     shortcuts: List<ShortcutState>,
     favorites: List<InstalledApp>,
     recents: List<InstalledApp>,
-    totalApps: Int,
     onOpen: (String) -> Unit,
     onOpenStoreListing: (String) -> Unit,
-    onSettings: () -> Unit,
+    onMoreApps: () -> Unit,
+    onMoreStreaming: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var missing by remember { mutableStateOf<ShortcutState?>(null) }
-    val firstCard = remember { FocusRequester() }
+    val firstTile = remember { FocusRequester() }
+    val byId = remember(shortcuts) { shortcuts.associateBy { it.shortcut.id } }
     val hasShortcuts = shortcuts.isNotEmpty()
     LaunchedEffect(hasShortcuts) {
-        if (hasShortcuts) { delay(150); runCatching { firstCard.requestFocus() } }
+        if (hasShortcuts) { delay(150); runCatching { firstTile.requestFocus() } }
     }
 
     LazyColumn(
         modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = SPSpacing.xl, vertical = SPSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(SPSpacing.lg),
+        contentPadding = PaddingValues(start = 26.dp, end = 23.dp, top = 2.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { SPHeader(onSettings) }
-        item { HomeHero(totalApps, favorites.size) }
+        item { HomeBanner(onStart = onMoreStreaming) }
+
         item {
-            Column {
-                SPSectionTitle("Seus apps")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(SPSpacing.md), contentPadding = PaddingValues(vertical = 14.dp)) {
-                    itemsIndexed(shortcuts, key = { _, s -> s.shortcut.id }) { i, s ->
-                        SPAppCard(
-                            label = s.shortcut.name, packageName = s.resolvedPackage, installed = s.installed, large = true,
-                            subtitle = if (s.installed) null else "Não instalado",
-                            onClick = { val pkg = s.resolvedPackage; if (pkg != null) onOpen(pkg) else missing = s },
-                            modifier = if (i == 0) Modifier.focusRequester(firstCard) else Modifier,
-                        )
-                    }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SPText("Aplicativos", RowSectionTitle)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+                    listOf("youtube", "netflix", "prime", "disney", "hbomax", "spotify", "playstore")
+                        .mapNotNull { byId[it] }
+                        .forEachIndexed { i, s ->
+                            ShortcutTile(
+                                s, onOpen, { missing = s },
+                                Modifier.weight(1f).height(75.dp).then(if (i == 0) Modifier.focusRequester(firstTile) else Modifier),
+                            )
+                        }
+                    SPActionTile("Mais Apps", SPIconKind.DOTS, onMoreApps, Modifier.weight(1f).height(75.dp))
                 }
             }
         }
-        if (favorites.isNotEmpty()) item { AppRow("Favoritos", favorites, onOpen) }
-        if (recents.isNotEmpty()) item { AppRow("Usados recentemente", recents, onOpen) }
+
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SPText("Streaming", RowSectionTitle)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+                    listOf("netflix", "prime", "disney", "hbomax", "youtube").mapNotNull { byId[it] }.forEach { s ->
+                        ShortcutTile(s, onOpen, { missing = s }, Modifier.weight(1f).height(70.dp))
+                    }
+                    SPActionTile("Mais streaming", SPIconKind.STREAMING, onMoreStreaming, Modifier.weight(1f).height(70.dp))
+                }
+            }
+        }
+
+        if (favorites.isNotEmpty()) item { AppsRow("Favoritos", favorites, onOpen) }
+        if (recents.isNotEmpty()) item { AppsRow("Usados recentemente", recents, onOpen) }
+
+        item {
+            Box(Modifier.fillMaxWidth().padding(top = 4.dp), contentAlignment = Alignment.CenterEnd) {
+                SPText("STREET PLAY  //  SEMPRE COM VOCÊ", TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = LocalAccent.current))
+            }
+        }
     }
 
     missing?.let { s ->
@@ -75,32 +110,68 @@ fun HomeScreen(
 }
 
 @Composable
-private fun AppRow(title: String, apps: List<InstalledApp>, onOpen: (String) -> Unit) {
-    Column {
-        SPSectionTitle(title)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(SPSpacing.md), contentPadding = PaddingValues(vertical = 14.dp)) {
+private fun ShortcutTile(s: ShortcutState, onOpen: (String) -> Unit, onMissing: () -> Unit, modifier: Modifier) {
+    SPTile(
+        label = s.shortcut.name, packageName = s.resolvedPackage ?: s.shortcut.packages.first(),
+        installed = s.installed, brand = Color(s.shortcut.brandColor),
+        onClick = { val pkg = s.resolvedPackage; if (pkg != null) onOpen(pkg) else onMissing() },
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun AppsRow(title: String, apps: List<InstalledApp>, onOpen: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        SPText(title, RowSectionTitle)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap), contentPadding = PaddingValues(vertical = 6.dp)) {
             items(apps, key = { it.packageName }) { app ->
-                SPAppCard(app.label, app.packageName, installed = true, onClick = { onOpen(app.packageName) })
+                SPTile(app.label, app.packageName, true, SPColors.Orange, { onOpen(app.packageName) }, Modifier.width(114.dp).height(75.dp))
             }
         }
     }
 }
 
 @Composable
-private fun HomeHero(total: Int, favorites: Int) {
+private fun HomeBanner(onStart: () -> Unit) {
     val accent = LocalAccent.current
-    val greeting = remember {
-        when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) { in 5..11 -> "Bom dia"; in 12..17 -> "Boa tarde"; else -> "Boa noite" }
-    }
+    val shape = RoundedCornerShape(16.dp)
     Box(
-        Modifier.fillMaxWidth().height(170.dp).clip(RoundedCornerShape(SPRadius.lg))
-            .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.30f), SPColors.Card)))
-            .padding(SPSpacing.lg),
+        Modifier.fillMaxWidth().height(214.dp).clip(shape)
+            .background(Brush.horizontalGradient(listOf(Color(0xFF0A0A0A), Color(0xFF120905), Color(0xFF1C0D04))))
+            .border(1.5.dp, Brush.linearGradient(listOf(accent, accent.copy(alpha = 0.35f), accent)), shape),
     ) {
-        Column(Modifier.align(Alignment.CenterStart), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SPText(greeting, SPType.Display)
-            SPText("Seu entretenimento. Do seu jeito.", SPType.Title, color = SPColors.TextSecondary)
-            SPText("$total aplicativos instalados · $favorites favoritos", SPType.Body, color = accent)
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width; val h = size.height
+            drawPath(Path().apply { moveTo(w * .50f, 0f); lineTo(w * .66f, 0f); lineTo(w * .52f, h); lineTo(w * .36f, h); close() },
+                Brush.linearGradient(listOf(accent.copy(alpha = 0f), accent.copy(alpha = 0.16f))))
+            drawPath(Path().apply { moveTo(w * .66f, 0f); lineTo(w * .70f, 0f); lineTo(w * .56f, h); lineTo(w * .52f, h); close() },
+                accent.copy(alpha = 0.55f))
+            drawPath(Path().apply { moveTo(w * .93f, h); lineTo(w, h * .72f); lineTo(w, h); close() }, accent.copy(alpha = 0.85f))
         }
+        Column(Modifier.align(Alignment.CenterStart).padding(start = 44.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            SPText("STREET PLAY", TextStyle(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, fontStyle = FontStyle.Italic, color = accent))
+            SPText("SEU ENTRETENIMENTO", TextStyle(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, fontStyle = FontStyle.Italic, color = Color.White))
+            SPText("EM UM SÓ LUGAR", TextStyle(fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, fontStyle = FontStyle.Italic, color = accent))
+            Spacer(Modifier.height(4.dp))
+            SPText("Seus apps oficiais, favoritos\ne atalhos em uma tela só.", TextStyle(fontSize = 14.sp, color = Color(0xFFE0E0E0)))
+            Spacer(Modifier.height(8.dp))
+            SPFocusIndicator(
+                onClick = onStart, shape = RoundedCornerShape(10.dp), container = Color.Transparent,
+                focusedContainer = accent.copy(alpha = 0.28f), focusScale = 1.05f, idleBorder = accent,
+            ) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Canvas(Modifier.size(12.dp)) {
+                        drawPath(Path().apply { moveTo(0f, 0f); lineTo(size.width, size.height / 2); lineTo(0f, size.height); close() }, accent)
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    SPText("COMECE AGORA", TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                }
+            }
+        }
+        Image(
+            painter = painterResource(R.drawable.logo_banner), contentDescription = null,
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 38.dp).height(176.dp),
+            contentScale = ContentScale.Fit,
+        )
     }
 }

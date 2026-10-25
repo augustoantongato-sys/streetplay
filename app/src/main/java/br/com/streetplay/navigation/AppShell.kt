@@ -1,6 +1,7 @@
 package br.com.streetplay.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
@@ -9,8 +10,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.streetplay.core.design.LocalAccent
+import br.com.streetplay.core.design.SPHeader
 import br.com.streetplay.core.design.SPSidebar
 import br.com.streetplay.core.design.SPWallpapers
 import br.com.streetplay.features.about.AboutScreen
@@ -33,6 +38,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel) {
     val recents by vm.recents.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val prefs by settingsVm.prefs.collectAsStateWithLifecycle()
+    val accent = LocalAccent.current
 
     // BACK volta ao Início; no Início não faz nada (launcher não deve fechar).
     BackHandler { if (dest != Destination.HOME) dest = Destination.HOME }
@@ -44,31 +50,39 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel) {
     val wallpaper = SPWallpapers[prefs.wallpaper.coerceIn(SPWallpapers.indices)]
 
     Box(Modifier.fillMaxSize().background(Brush.linearGradient(wallpaper.colors))) {
+        // brilho laranja discreto no topo
+        Canvas(Modifier.fillMaxSize()) {
+            drawRect(Brush.radialGradient(listOf(accent.copy(alpha = 0.10f), Color.Transparent),
+                center = Offset(size.width * 0.72f, 0f), radius = size.width * 0.45f))
+        }
         Row(Modifier.fillMaxSize()) {
             SPSidebar(
                 items = Destination.entries.map { it.toSidebarItem() },
                 selectedId = dest.name,
                 onSelect = { dest = Destination.valueOf(it) },
             )
-            Box(Modifier.weight(1f).fillMaxHeight().focusRequester(contentFocus).focusGroup()) {
-                when (dest) {
-                    Destination.HOME -> HomeScreen(
-                        shortcuts = shortcuts,
-                        favorites = favorites.mapNotNull { byPkg[it] },
-                        recents = recents.mapNotNull { byPkg[it] },
-                        totalApps = apps.size,
-                        onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
-                        onSettings = { dest = Destination.SETTINGS },
-                    )
-                    Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
-                    Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
-                    Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)
-                    Destination.STORE -> StoreScreen(shortcuts, vm::open, vm::openStoreListing)
-                    Destination.SETTINGS -> SettingsScreen(
-                        prefs, settingsVm::setWallpaper, settingsVm::setAccent, settingsVm::setAnimations,
-                        onManageFavorites = { dest = Destination.FAVORITES },
-                    )
-                    Destination.ABOUT -> AboutScreen()
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                SPHeader(onSettings = { dest = Destination.SETTINGS })
+                Box(Modifier.weight(1f).fillMaxWidth().focusRequester(contentFocus).focusGroup()) {
+                    when (dest) {
+                        Destination.HOME -> HomeScreen(
+                            shortcuts = shortcuts,
+                            favorites = favorites.mapNotNull { byPkg[it] },
+                            recents = recents.mapNotNull { byPkg[it] },
+                            onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
+                            onMoreApps = { dest = Destination.APPS },
+                            onMoreStreaming = { dest = Destination.ENTERTAINMENT },
+                        )
+                        Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
+                        Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
+                        Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)
+                        Destination.STORE -> StoreScreen(shortcuts, vm::open, vm::openStoreListing)
+                        Destination.SETTINGS -> SettingsScreen(
+                            prefs, settingsVm::setWallpaper, settingsVm::setAccent, settingsVm::setAnimations,
+                            onManageFavorites = { dest = Destination.FAVORITES },
+                        )
+                        Destination.ABOUT -> AboutScreen()
+                    }
                 }
             }
         }

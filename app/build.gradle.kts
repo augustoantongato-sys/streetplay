@@ -13,8 +13,18 @@ android {
         applicationId = "br.com.streetplay"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.1.0"
+    }
+
+    // Assinatura fixa de TESTE: o app novo instala por cima do antigo sem desinstalar.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("streetplay-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
