@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import br.com.streetplay.AppContainer
 import br.com.streetplay.core.storage.PrefsStore
 import br.com.streetplay.core.storage.UserPrefs
+import br.com.streetplay.features.home.DiscoverViewModel
 import br.com.streetplay.features.home.LauncherViewModel
+import br.com.streetplay.features.live.LiveViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -24,6 +26,8 @@ class AppViewModelFactory(private val c: AppContainer) : ViewModelProvider.Facto
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
         modelClass.isAssignableFrom(LauncherViewModel::class.java) -> LauncherViewModel(c.repository) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(c.prefs) as T
+        modelClass.isAssignableFrom(DiscoverViewModel::class.java) -> DiscoverViewModel(c.catalog) as T
+        modelClass.isAssignableFrom(LiveViewModel::class.java) -> LiveViewModel(c.catalog) as T
         else -> error("ViewModel desconhecido: ${modelClass.name}")
     }
 }

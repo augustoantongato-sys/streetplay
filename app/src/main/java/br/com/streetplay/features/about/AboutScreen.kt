@@ -21,7 +21,9 @@ fun AboutScreen(modifier: Modifier = Modifier) {
         SPCard {
             SPText("Versão $version", SPType.Body)
             SPText("Launcher para Android TV, Google TV e TV Boxes Android.", SPType.Body)
-            SPText("Sem anúncios · sem rastreadores · sem coleta de dados · funciona offline.", SPType.Caption)
+            SPText("Sem anúncios · sem rastreadores · não coleta dados pessoais.", SPType.Caption)
+            SPText("Filmes e séries em destaque: dados e imagens do TMDB. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.", SPType.Caption)
+            SPText("Canais ao vivo: listas públicas do projeto IPTV-org. A disponibilidade depende de cada emissora.", SPType.Caption)
             SPText("Kotlin · Jetpack Compose for TV · Room · DataStore", SPType.Caption)
         }
     }

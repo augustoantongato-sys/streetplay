@@ -16,6 +16,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.9" }
       - name: Testes e APK debug
+        env:
+          ORG_GRADLE_PROJECT_TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
         run: |
           set +e
           gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --continue --console=plain > build.log 2>&1
@@ -32,5 +34,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk StreetPlay.apk
-          gh release delete v1.1.0 --yes --cleanup-tag || true
-          gh release create v1.1.0 StreetPlay.apk --title "STREET PLAY 1.1.0" --notes "APK debug instalável para Android TV."
+          gh release delete v1.2.0 --yes --cleanup-tag || true
+          gh release create v1.2.0 StreetPlay.apk --title "STREET PLAY 1.2.0" --notes "APK debug instalável para Android TV."

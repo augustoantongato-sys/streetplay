@@ -18,7 +18,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-enum class SPIconKind { HOME, APPS, STREAMING, FAVORITES, STORE, SETTINGS, INFO, WIFI, DOTS }
+enum class SPIconKind { HOME, APPS, STREAMING, FAVORITES, STORE, SETTINGS, INFO, WIFI, DOTS, TV }
 
 /** Ícones desenhados em Canvas: sem dependência de fonte nem de pacote de ícones. */
 @Composable
@@ -76,6 +76,12 @@ fun SPIcon(kind: SPIconKind, modifier: Modifier = Modifier, tint: Color = Color.
                     drawArc(tint, 225f, 90f, false, p(.5f - r, .8f - r), Size(2 * r * s, 2 * r * s), style = stroke)
                 }
                 drawCircle(tint, .06f * s, p(.5f, .8f))
+            }
+            SPIconKind.TV -> {
+                drawRoundRect(tint, p(.08f, .28f), Size(.84f * s, .6f * s), CornerRadius(.08f * s), style = stroke)
+                drawLine(tint, p(.5f, .28f), p(.33f, .1f), strokeWidth = s * .08f, cap = StrokeCap.Round)
+                drawLine(tint, p(.5f, .28f), p(.67f, .1f), strokeWidth = s * .08f, cap = StrokeCap.Round)
+                drawPath(poly(.42f to .42f, .42f to .74f, .68f to .58f), tint)
             }
             SPIconKind.DOTS -> for (i in 0..2) for (j in 0..2) drawCircle(tint, .07f * s, p(.2f + .3f * i, .2f + .3f * j))
         }

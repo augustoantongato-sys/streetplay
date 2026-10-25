@@ -13,8 +13,10 @@ android {
         applicationId = "br.com.streetplay"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.2.0"
+        // Chave do TMDB vem do segredo do GitHub (ORG_GRADLE_PROJECT_TMDB_TOKEN). Vazia = seção de destaques some.
+        buildConfigField("String", "TMDB_TOKEN", "\"${(project.findProperty("TMDB_TOKEN") as String?) ?: ""}\"")
     }
 
     // Assinatura fixa de TESTE: o app novo instala por cima do antigo sem desinstalar.
@@ -39,7 +41,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
@@ -63,5 +68,11 @@ dependencies {
     implementation("androidx.room:room-ktx:$room")
     ksp("androidx.room:room-compiler:$room")
 
+    val media3 = "1.4.1"
+    implementation("androidx.media3:media3-exoplayer:$media3")
+    implementation("androidx.media3:media3-exoplayer-hls:$media3")
+    implementation("androidx.media3:media3-ui:$media3")
+
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

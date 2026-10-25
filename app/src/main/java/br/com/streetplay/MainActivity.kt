@@ -13,7 +13,10 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.streetplay.core.common.LocalIconLoader
 import br.com.streetplay.core.design.SPTheme
+import br.com.streetplay.core.design.LocalRemoteImage
+import br.com.streetplay.features.home.DiscoverViewModel
 import br.com.streetplay.features.home.LauncherViewModel
+import br.com.streetplay.features.live.LiveViewModel
 import br.com.streetplay.features.settings.AppViewModelFactory
 import br.com.streetplay.features.settings.SettingsViewModel
 import br.com.streetplay.navigation.AppShell
@@ -22,6 +25,8 @@ class MainActivity : ComponentActivity() {
     private val factory by lazy { AppViewModelFactory((application as StreetPlayApp).container) }
     private val launcherVm: LauncherViewModel by viewModels { factory }
     private val settingsVm: SettingsViewModel by viewModels { factory }
+    private val discoverVm: DiscoverViewModel by viewModels { factory }
+    private val liveVm: LiveViewModel by viewModels { factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,8 +40,11 @@ class MainActivity : ComponentActivity() {
             val density = Density(density = maxOf(dm.widthPixels, dm.heightPixels) / 1280f, fontScale = 1f)
             CompositionLocalProvider(LocalDensity provides density) {
                 SPTheme(prefs.accent, prefs.animations) {
-                    CompositionLocalProvider(LocalIconLoader provides launcherVm::loadIcon) {
-                        AppShell(launcherVm, settingsVm)
+                    CompositionLocalProvider(
+                        LocalIconLoader provides launcherVm::loadIcon,
+                        LocalRemoteImage provides (application as StreetPlayApp).container.imageLoader::load,
+                    ) {
+                        AppShell(launcherVm, settingsVm, discoverVm, liveVm)
                     }
                 }
             }
@@ -45,6 +53,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        discoverVm.refreshIfEmpty()
         launcherVm.refresh()   // apps podem ter sido instalados/removidos
     }
 }
