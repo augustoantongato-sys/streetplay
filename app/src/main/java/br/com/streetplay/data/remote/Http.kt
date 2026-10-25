@@ -2,6 +2,7 @@ package br.com.streetplay.data.remote
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -21,6 +22,22 @@ object Http {
                 val bytes = c.inputStream.use { it.readBytes() }
                 check(bytes.size <= maxBytes) { "Resposta grande demais" }
                 bytes
+            } finally {
+                c.disconnect()
+            }
+        }
+
+    /** Abre a resposta como fluxo (para arquivos grandes). O Android já descompacta gzip sozinho. */
+    suspend fun <T> open(url: String, headers: Map<String, String> = emptyMap(), block: (InputStream) -> T): T =
+        withContext(Dispatchers.IO) {
+            val c = URL(url).openConnection() as HttpURLConnection
+            try {
+                c.connectTimeout = 15_000
+                c.readTimeout = 45_000
+                c.instanceFollowRedirects = true
+                headers.forEach { (k, v) -> c.setRequestProperty(k, v) }
+                if (c.responseCode !in 200..299) error("HTTP ${c.responseCode}")
+                c.inputStream.use(block)
             } finally {
                 c.disconnect()
             }

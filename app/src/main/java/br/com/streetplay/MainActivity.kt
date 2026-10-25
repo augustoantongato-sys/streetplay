@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
             val dm = resources.displayMetrics
             val density = Density(density = maxOf(dm.widthPixels, dm.heightPixels) / 1280f, fontScale = 1f)
             CompositionLocalProvider(LocalDensity provides density) {
-                SPTheme(prefs.accent, prefs.animations) {
+                SPTheme(prefs.mode, prefs.animations) {
                     CompositionLocalProvider(
                         LocalIconLoader provides launcherVm::loadIcon,
                         LocalRemoteImage provides (application as StreetPlayApp).container.imageLoader::load,

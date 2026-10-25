@@ -22,7 +22,7 @@ fun FavoritesScreen(
     val list = remember(apps, favorites) { favorites.mapNotNull { byPkg[it] } }
     Column(modifier.fillMaxSize().padding(horizontal = SPSpacing.xl).padding(top = SPSpacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SPSectionTitle("Favoritos")
-        SPText("Segure OK em um app para reordenar ou remover", SPType.Caption)
+        if (!LocalLite.current) SPText("Segure OK em um app para reordenar ou remover", SPType.Caption)
         if (list.isEmpty()) SPEmptyState("Nenhum favorito ainda", "Em Aplicativos, segure OK em um app para favoritar.")
         else AppGrid(list, favorites, reorderable = true, onOpen = onOpen, onToggleFavorite = onToggleFavorite, onMove = onMove)
     }

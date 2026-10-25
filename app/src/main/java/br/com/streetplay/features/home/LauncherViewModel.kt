@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.streetplay.data.AppRepository
+import br.com.streetplay.data.StreamingCatalog
 import br.com.streetplay.domain.InstalledApp
 import br.com.streetplay.domain.ShortcutState
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -42,6 +43,13 @@ class LauncherViewModel(private val repo: AppRepository) : ViewModel() {
 
     fun open(pkg: String) = viewModelScope.launch {
         if (!repo.launch(pkg)) _messages.emit("Não foi possível abrir este aplicativo.")
+    }
+
+    /** "Loja" vai direto para a Google Play Store do aparelho. */
+    fun openPlayStore() = viewModelScope.launch {
+        val pkg = StreamingCatalog.PLAY_STORE_PACKAGE
+        if (!repo.isInstalled(pkg)) _messages.emit("Este aparelho não tem a Google Play Store.")
+        else if (!repo.launch(pkg)) _messages.emit("Não foi possível abrir a Play Store.")
     }
 
     fun openStoreListing(pkg: String) {

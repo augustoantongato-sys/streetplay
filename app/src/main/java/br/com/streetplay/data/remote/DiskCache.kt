@@ -29,4 +29,6 @@ class DiskCache(private val dir: File) {
     }
 
     suspend fun write(key: String, text: String) = withContext(Dispatchers.IO) { file(key).writeText(text) }
+
+    suspend fun readAny(key: String): String? = withContext(Dispatchers.IO) { file(key).takeIf { it.exists() }?.readText() }
 }

@@ -34,18 +34,8 @@ object SPType {
     val Caption = TextStyle(fontSize = 13.sp, color = SPColors.TextSecondary)
 }
 
-/** Três tons oficiais da marca selecionáveis em Configurações > Aparência. */
-val SPAccents = listOf(
-    "Laranja" to SPColors.Orange,
-    "Âmbar" to SPColors.OrangeSecondary,
-    "Pêssego" to SPColors.OrangeLight,
-)
-
-data class SPWallpaper(val name: String, val colors: List<Color>)
-
-val SPWallpapers = listOf(
-    SPWallpaper("Carvão", listOf(Color(0xFF0F0F0F), Color(0xFF080808))),
-    SPWallpaper("Brasa", listOf(Color(0xFF3A1A06), Color(0xFF101010))),
-    SPWallpaper("Noite", listOf(Color(0xFF0E1A2E), Color(0xFF101010))),
-    SPWallpaper("Aurora", listOf(Color(0xFF241236), Color(0xFF101010))),
-)
+/** Paleta do modo Lite: apenas preto, branco e cinzas. */
+object LiteColors {
+    val Tile = Color(0xFF1C1C1E)
+    val TileFocused = Color(0xFF2C2C2E)
+}

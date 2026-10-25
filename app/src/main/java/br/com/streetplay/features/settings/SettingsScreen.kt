@@ -14,46 +14,48 @@ import androidx.compose.ui.platform.LocalContext
 import br.com.streetplay.core.common.openSystemScreen
 import br.com.streetplay.core.design.*
 import br.com.streetplay.core.storage.UserPrefs
+import br.com.streetplay.domain.AppMode
 import java.util.Locale
 
 @Composable
 fun SettingsScreen(
     prefs: UserPrefs,
-    onWallpaper: (Int) -> Unit,
-    onAccent: (Int) -> Unit,
+    onMode: (AppMode) -> Unit,
     onAnimations: (Boolean) -> Unit,
     onManageFavorites: () -> Unit,
+    onAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val lite = LocalLite.current
     fun system(action: String) {
         if (!context.openSystemScreen(action)) Toast.makeText(context, "Tela indisponível neste aparelho.", Toast.LENGTH_SHORT).show()
     }
-    val wallpaper = prefs.wallpaper.coerceIn(SPWallpapers.indices)
-    val accent = prefs.accent.coerceIn(SPAccents.indices)
+    val other = if (prefs.mode == AppMode.STREET) AppMode.LITE else AppMode.STREET
 
     LazyColumn(
-        modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = SPSpacing.xl, vertical = SPSpacing.lg),
+        modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = if (lite) 56.dp else SPSpacing.xl, vertical = SPSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(SPSpacing.sm),
     ) {
-        item { SPSectionTitle("Configurações") }
-        item { SPText("Aparência", SPType.Label, color = SPColors.TextSecondary) }
-        item { SPSettingsItem("Papel de parede", { onWallpaper((wallpaper + 1) % SPWallpapers.size) }, subtitle = "Pressione OK para trocar", value = SPWallpapers[wallpaper].name) }
-        item { SPSettingsItem("Cor de destaque", { onAccent((accent + 1) % SPAccents.size) }, subtitle = "Tons oficiais da marca", value = SPAccents[accent].first) }
-        item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, subtitle = "Desative em aparelhos mais lentos", value = if (prefs.animations) "Ligadas" else "Desligadas") }
-
-        item { SPText("Aplicativos", SPType.Label, color = SPColors.TextSecondary) }
-        item { SPSettingsItem("Gerenciar favoritos", onManageFavorites, subtitle = "Reordenar e remover") }
-
-        item { SPText("Sistema", SPType.Label, color = SPColors.TextSecondary) }
+        item { SPSectionTitle(if (lite) "Ajustes" else "Configurações") }
+        item {
+            SPSettingsItem(
+                "Modo", { onMode(other) },
+                subtitle = if (lite) null else "Street Play (preto e laranja) ou Lite (preto e branco, minimalista)",
+                value = prefs.mode.label,
+            )
+        }
+        item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, value = if (prefs.animations) "Ligadas" else "Desligadas") }
+        item { SPSettingsItem("Gerenciar favoritos", onManageFavorites) }
         item { SPSettingsItem("Aparelho", {}, value = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}") }
         item { SPSettingsItem("Versão do Android", {}, value = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})") }
         item { SPSettingsItem("Resolução", {}, value = resolution(context)) }
         item { SPSettingsItem("Armazenamento disponível", {}, value = freeStorage()) }
-        item { SPSettingsItem("Definir Street Play como launcher", { system(Settings.ACTION_HOME_SETTINGS) }, subtitle = "Depende do fabricante e da versão do Android") }
+        item { SPSettingsItem("Definir como launcher padrão", { system(Settings.ACTION_HOME_SETTINGS) }, subtitle = if (lite) null else "Depende do fabricante e da versão do Android") }
         item { SPSettingsItem("Configurações do Android", { system(Settings.ACTION_SETTINGS) }) }
         item { SPSettingsItem("Wi-Fi", { system(Settings.ACTION_WIFI_SETTINGS) }) }
         item { SPSettingsItem("Bluetooth", { system(Settings.ACTION_BLUETOOTH_SETTINGS) }) }
+        item { SPSettingsItem("Sobre", onAbout) }
     }
 }
 

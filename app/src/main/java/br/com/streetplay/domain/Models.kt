@@ -44,16 +44,19 @@ data class LiveChannel(
     val id: String,
     val name: String,
     val logo: String?,
-    val group: String,
+    val country: String,
+    val categories: List<String>,
     val url: String,
     val userAgent: String? = null,
     val referrer: String? = null,
+    val quality: String? = null,
+    val labels: List<String> = emptyList(),
 )
 
-/** Listas públicas oficiais do projeto IPTV-org. */
-enum class LiveSource(val label: String, val url: String) {
-    BRAZIL("Brasil", "https://iptv-org.github.io/iptv/countries/br.m3u"),
-    MOVIES("Filmes", "https://iptv-org.github.io/iptv/categories/movies.m3u"),
-    SERIES("Séries", "https://iptv-org.github.io/iptv/categories/series.m3u"),
-    NEWS("Notícias", "https://iptv-org.github.io/iptv/categories/news.m3u"),
-}
+enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY }
+
+/** Grupo da lista de canais (como as pastas de um app de IPTV). */
+data class LiveGroup(val id: String, val label: String, val count: Int, val kind: GroupKind)
+
+/** Os dois modos do app. O usuário não escolhe cores nem fundo: só o modo. */
+enum class AppMode(val label: String) { STREET("Street Play"), LITE("Lite") }

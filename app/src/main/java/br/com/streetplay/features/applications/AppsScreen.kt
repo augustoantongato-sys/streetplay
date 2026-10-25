@@ -34,7 +34,7 @@ fun AppsScreen(
             item { SPButton("Todos", { category = null }, selected = category == null) }
             items(present) { c -> SPButton(c.label, { category = c }, selected = category == c) }
         }
-        SPText("Segure OK em um app para favoritar", SPType.Caption)
+        if (!LocalLite.current) SPText("Segure OK em um app para favoritar", SPType.Caption)
         when {
             loading && apps.isEmpty() -> SPEmptyState("Carregando…", "Procurando seus aplicativos")
             filtered.isEmpty() -> SPEmptyState("Nenhum aplicativo encontrado", "Tente outro termo ou categoria.")

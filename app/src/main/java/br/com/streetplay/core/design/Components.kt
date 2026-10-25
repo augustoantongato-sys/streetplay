@@ -20,6 +20,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -167,13 +168,14 @@ fun SPTile(
     val icon by produceState<ImageBitmap?>(null, packageName, installed) {
         value = if (packageName != null && installed) loader(packageName) else null
     }
+    val tint = if (LocalLite.current) Color.White else brand
     SPFocusIndicator(
         onClick = onClick, onLongClick = onLongClick, modifier = modifier,
         container = SPColors.TileBase, focusedContainer = SPColors.TileFocused,
         focusScale = 1.06f, idleBorder = SPColors.Border,
     ) {
         Box(
-            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(brand.copy(alpha = 0.30f), brand.copy(alpha = 0.05f)))),
+            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.30f), tint.copy(alpha = 0.05f)))),
             contentAlignment = Alignment.Center,
         ) {
             Column(Modifier.padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -183,7 +185,7 @@ fun SPTile(
                     Spacer(Modifier.height(3.dp))
                     SPText(label, TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Color.White), maxLines = 1)
                 } else {
-                    SPText(label, TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold), color = lerp(brand, Color.White, 0.35f), maxLines = 1)
+                    SPText(label, TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold), color = lerp(tint, Color.White, 0.35f), maxLines = 1)
                     SPText("Não instalado", TextStyle(fontSize = 10.sp, color = SPColors.TextSecondary), maxLines = 1)
                 }
             }
@@ -259,6 +261,7 @@ fun SPLogo(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.logo_sidebar), contentDescription = "Street Play",
         modifier = modifier, contentScale = ContentScale.Fit, alignment = Alignment.CenterStart,
+        colorFilter = if (LocalLite.current) ColorFilter.tint(Color.White) else null,
     )
 }
 
