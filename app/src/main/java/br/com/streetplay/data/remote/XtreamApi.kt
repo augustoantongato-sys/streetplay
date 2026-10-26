@@ -37,7 +37,7 @@ class XtreamApi {
     }
 
     suspend fun liveChannels(credentials: XtreamCredentials): List<LiveChannel> {
-        val categories = categoryNames(request(credentials, "get_live_categories"), "category_id", "category_name")
+        val categories = categoryNames(requestArray(credentials, "get_live_categories"), "category_id", "category_name")
         val streams = requestArray(credentials, "get_live_streams")
         return buildList {
             for (i in 0 until streams.length()) {
