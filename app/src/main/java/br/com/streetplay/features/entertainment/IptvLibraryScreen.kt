@@ -53,14 +53,14 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifi
         SPSectionTitle("Filmes e séries do seu IPTV")
         SPText("Conteúdo fornecido pela sua própria assinatura. A disponibilidade depende do seu provedor.", SPType.Caption, color = SPColors.TextSecondary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 12.dp)) {
-            SPButton(if (tab == LibraryTab.MOVIES) "Filmes • selecionado" else "Filmes") { tab = LibraryTab.MOVIES }
-            SPButton(if (tab == LibraryTab.SERIES) "Séries • selecionado" else "Séries") { tab = LibraryTab.SERIES }
-            SPButton("Atualizar") { refresh() }
+            SPButton(if (tab == LibraryTab.MOVIES) "Filmes • selecionado" else "Filmes", onClick = { tab = LibraryTab.MOVIES })
+            SPButton(if (tab == LibraryTab.SERIES) "Séries • selecionado" else "Séries", onClick = { tab = LibraryTab.SERIES })
+            SPButton("Atualizar", onClick = { refresh() })
         }
         if (message.isNotBlank()) SPText(message, SPType.Body, color = SPColors.TextSecondary)
         if (loading) SPText("Carregando…", SPType.Body)
         if (selectedSeries != null) {
-            SPButton("← Voltar para séries") { selectedSeries = null; episodes = emptyList() }
+            SPButton("← Voltar para séries", onClick = { selectedSeries = null; episodes = emptyList() })
             SPSectionTitle(selectedSeries!!.name)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(episodes, key = { it.id }) { ep ->
