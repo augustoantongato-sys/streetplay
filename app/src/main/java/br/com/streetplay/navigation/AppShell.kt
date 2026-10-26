@@ -20,6 +20,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.streetplay.core.design.LocalAccent
 import br.com.streetplay.core.design.SPHeader
 import br.com.streetplay.core.design.SPSidebar
+import br.com.streetplay.core.design.SPActionTile
+import br.com.streetplay.core.design.SPText
+import br.com.streetplay.core.design.SPType
 import br.com.streetplay.domain.AppMode
 import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.features.about.AboutScreen
