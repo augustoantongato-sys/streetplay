@@ -106,7 +106,7 @@ private fun IptvAccountDialog(
         IptvInput(username, { username = it }, "Usuário")
         IptvInput(password, { password = it }, "Senha", secret = true)
         if (message.isNotBlank()) SPText(message, SPType.Caption, color = if (connected) Color(0xFF55CC88) else SPColors.TextSecondary)
-        SPButton("Testar e conectar") { onSave(server, username, password) }
+        SPButton("Testar e conectar", onClick = { onSave(server, username, password) })
         if (connected) SPButton("Desconectar conta", onDisconnect)
         SPButton("Fechar", onDismiss)
     }
