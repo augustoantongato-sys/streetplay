@@ -80,7 +80,15 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     val navigate: (Destination) -> Unit = { d -> if (d == Destination.STORE) vm.openPlayStore() else dest = d }
 
     val screen: @Composable () -> Unit = {
-        when (dest) {
+        if (!iptvConnected) {
+            SettingsScreen(
+                prefs = prefs, onMode = settingsVm::setMode, onAccent = settingsVm::setAccent, onAnimations = settingsVm::setAnimations,
+                onManageFavorites = {}, onAbout = {},
+                iptvConnected = iptvConnected, iptvMessage = iptvMessage,
+                onSaveIptv = settingsVm::saveIptv, onDisconnectIptv = settingsVm::disconnectIptv,
+                forceIptvLogin = true,
+            )
+        } else when (dest) {
             Destination.HOME ->
                 if (lite) LiteHomeScreen(
                     entries = homeEntries, favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
