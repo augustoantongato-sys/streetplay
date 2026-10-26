@@ -89,29 +89,21 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                 forceIptvLogin = true,
             )
         } else when (dest) {
-            Destination.HOME ->
-                if (lite) LiteHomeScreen(
-                    entries = homeEntries, favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
-                    trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing, onLive = { dest = Destination.LIVE },
-                    onLibrary = { dest = Destination.LIBRARY }, onServices = { dest = Destination.SERVICES },
-                    onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
-                ) else HomeScreen(
-                    shortcuts = shortcuts, entries = homeEntries,
-                    favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
-                    trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
-                    onMoreApps = { dest = Destination.APPS }, onMoreStreaming = { dest = Destination.SERVICES },
-                    onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onServices = { dest = Destination.SERVICES },
-                    onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
-                )
-            Destination.ADD_APPS -> AddAppsScreen(shortcuts, apps, homePins, vm::togglePin)
-            Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
-            Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
+            Destination.HOME -> StreetPlayHomeScreen(
+                onLive = { dest = Destination.LIVE },
+                onLibrary = { dest = Destination.LIBRARY },
+                onFavorites = { dest = Destination.LIVE },
+                onSettings = { dest = Destination.SETTINGS },
+            )
+            Destination.ADD_APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
+            Destination.APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
+            Destination.ENTERTAINMENT -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
             Destination.LIBRARY -> IptvLibraryScreen(onPlay = { ch -> playing = listOf(ch) to 0 })
-            Destination.SERVICES -> StreamingServicesScreen()
+            Destination.SERVICES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
             Destination.LIVE -> LiveScreen(
                 groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
                 loading = liveLoading, progress = liveProgress,
-                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleGrouped = liveVm::toggleGrouped, onOpenGloboplay = vm::openGloboplay, onCheck = liveVm::checkChannels,
+                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleGrouped = liveVm::toggleGrouped, onOpenGloboplay = {}, onCheck = liveVm::checkChannels,
                 onPlay = { list, ch ->
                     if (ch.external) {
                         if (!context.openUrl(ch.url)) Toast.makeText(context, "Instale o app do YouTube ou da Twitch para abrir este canal.", Toast.LENGTH_LONG).show()
@@ -121,8 +113,8 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                     }
                 }, onToggleFavorite = liveVm::toggleFavorite,
             )
-            Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)
-            Destination.STORE -> Unit
+            Destination.FAVORITES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
+            Destination.STORE -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
             Destination.SETTINGS -> SettingsScreen(
                 prefs = prefs, onMode = settingsVm::setMode, onAccent = settingsVm::setAccent, onAnimations = settingsVm::setAnimations,
                 onManageFavorites = { dest = Destination.FAVORITES }, onAbout = { dest = Destination.ABOUT },
@@ -162,5 +154,35 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             }
         }
         playing?.let { (list, start) -> PlayerScreen(list, start, onClose = { playing = null }) }
+    }
+}
+
+
+@Composable
+private fun StreetPlayHomeScreen(
+    onLive: () -> Unit,
+    onLibrary: () -> Unit,
+    onFavorites: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 26.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SPText("STREET PLAY", SPType.Display, color = LocalAccent.current)
+            SPText("Seu entretenimento em um só lugar.", SPType.Title)
+            SPText("Canais, filmes e séries da sua conta IPTV.", SPType.Body, color = Color(0xFFB8B8B8))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            SPActionTile("Assistir TV ao vivo", br.com.streetplay.core.design.SPIconKind.TV, onLive, Modifier.weight(1f).height(116.dp))
+            SPActionTile("Filmes e séries", br.com.streetplay.core.design.SPIconKind.STREAMING, onLibrary, Modifier.weight(1f).height(116.dp))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            SPActionTile("Favoritos", br.com.streetplay.core.design.SPIconKind.FAVORITES, onFavorites, Modifier.weight(1f).height(82.dp))
+            SPActionTile("Configurações", br.com.streetplay.core.design.SPIconKind.SETTINGS, onSettings, Modifier.weight(1f).height(82.dp))
+        }
+        Spacer(Modifier.weight(1f))
+        SPText("O catálogo e a disponibilidade dependem do seu provedor IPTV.", SPType.Caption, color = Color(0xFF888888))
     }
 }
