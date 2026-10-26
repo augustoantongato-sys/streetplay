@@ -165,7 +165,7 @@ fun LiveScreen(
 private fun rowLetters(rows: List<Row>): List<Pair<Char, Int>> {
     val first = LinkedHashMap<Char, Int>()
     rows.forEachIndexed { i, r ->
-        val name = when (r) { is Row.Net -> r.g.name; is Row.Chan -> if (r.nested) null else r.ch.name; Row.Globoplay -> null }
+        val name = when (r) { is Row.Net -> r.g.name; is Row.Chan -> if (r.nested) null else r.ch.name }
         if (name != null) first.putIfAbsent(letterOf(name), i)
     }
     return first.entries.sortedBy { if (it.key == '#') 0.toChar() else it.key }.map { it.key to it.value }
@@ -255,19 +255,6 @@ private fun ChannelRow(number: Int?, ch: LiveChannel, alive: Boolean?, fav: Bool
             else if (ch.external) SPText(if (ch.url.contains("twitch", true)) "Twitch" else "YouTube", SPType.Caption, Modifier.padding(start = 8.dp))
             else if (!lite && ch.quality != null) SPText(ch.quality, SPType.Caption, Modifier.padding(start = 8.dp))
             if (fav) { Spacer(Modifier.width(10.dp)); SPIcon(SPIconKind.FAVORITES, tint = accent, size = 16.dp) }
-        }
-    }
-}
-
-/** Atalho para o app oficial: a Globo de cada praça costuma estar lá (normalmente com login). */
-@Composable
-private fun GloboplayRow(onClick: () -> Unit) {
-    SPFocusIndicator(
-        onClick = onClick, modifier = Modifier.fillMaxWidth().height(54.dp),
-        shape = RoundedCornerShape(12.dp), container = SPColors.Card, focusedContainer = SPColors.CardFocused, focusScale = 1.02f,
-    ) {
-        Row(Modifier.fillMaxSize().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            SPText("Abrir o Globoplay (app oficial) — Globo ao vivo de outros estados", SPType.Label, Modifier.weight(1f), maxLines = 1)
         }
     }
 }
