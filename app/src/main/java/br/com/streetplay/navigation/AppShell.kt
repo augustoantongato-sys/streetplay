@@ -92,7 +92,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             Destination.HOME -> StreetPlayHomeScreen(
                 onLive = { dest = Destination.LIVE },
                 onLibrary = { dest = Destination.LIBRARY },
-                onFavorites = { dest = Destination.LIVE },
+                onFavorites = { liveVm.selectGroup("fav"); dest = Destination.LIVE },
                 onSettings = { dest = Destination.SETTINGS },
             )
             Destination.ADD_APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
