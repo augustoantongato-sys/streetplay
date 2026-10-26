@@ -16,10 +16,10 @@ private val preferredServices = listOf(
     "Netflix" to listOf("netflix"),
     "Prime Video" to listOf("prime video", "amazon prime"),
     "Disney+" to listOf("disney"),
-    "Max" to listOf("max", "hbo max"),
+    "Max" to listOf("hbo max"),
     "Apple TV+" to listOf("apple tv"),
     "Globoplay" to listOf("globoplay"),
-    "Paramount+" to listOf("paramount"),
+    "Paramount+" to listOf("paramount+", "paramount plus"),
 )
 
 private fun curatedProviders(all: List<StreamingProvider>): List<StreamingProvider> =
@@ -71,6 +71,7 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
 
     LaunchedEffect(type) {
         titles = emptyList()
+        selectedProvider = null
         loadProviders()
     }
     LaunchedEffect(selectedProvider?.id, type) {
