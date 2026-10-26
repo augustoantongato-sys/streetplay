@@ -6,6 +6,7 @@ import br.com.streetplay.data.remote.Http
 import br.com.streetplay.data.remote.TmdbParser
 import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.domain.TrendingItem
+import br.com.streetplay.domain.StreamingProvider
 import java.io.File
 
 /** TMDB fornece destaques e metadados de disponibilidade por serviço; o catálogo IPTV vem da conta Xtream do usuário. */
@@ -21,6 +22,22 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
             )
         } ?: return emptyList()
         return runCatching { TmdbParser.parseTrending(json) }.getOrDefault(emptyList())
+    }
+
+    /** Lista dinâmica de serviços de streaming que o TMDB informa para o Brasil. */
+    suspend fun watchProviders(type: String = "movie", forceRefresh: Boolean = false): List<StreamingProvider> {
+        if (tmdbToken.isBlank()) return emptyList()
+        require(type == "movie" || type == "tv")
+        val key = "watch_providers_br_$type"
+        val fetch: suspend () -> String = {
+            Http.get(
+                "https://api.themoviedb.org/3/watch/providers/$type?watch_region=BR&language=pt-BR",
+                mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
+            )
+        }
+        val json = (if (forceRefresh) runCatching { fetch().also { cache.write(key, it) } }.getOrElse { cache.readAny(key) }
+        else cache.cached(key, SIX_HOURS, fetch)) ?: return emptyList()
+        return runCatching { TmdbParser.parseWatchProviders(json) }.getOrDefault(emptyList())
     }
 
     /** Títulos que o TMDB associa a um serviço disponível no Brasil. Metadados apenas; reprodução depende do app oficial ou do IPTV do usuário. */
