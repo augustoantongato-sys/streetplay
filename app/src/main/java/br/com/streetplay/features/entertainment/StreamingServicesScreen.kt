@@ -30,7 +30,7 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
     val repo = remember { app.container.catalog }
     val provider = remember { mutableStateOf(streamingProviders.first()) }
     var type by remember { mutableStateOf("movie") }
-    var items by remember { mutableStateOf<List<TrendingItem>>(emptyList()) }
+    var titles by remember { mutableStateOf<List<TrendingItem>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
@@ -40,10 +40,10 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
             loading = true
             message = "Consultando disponibilidade no Brasil…"
             try {
-                items = repo.providerTitles(provider.value.id, type)
-                message = if (items.isEmpty()) "Nenhum título retornado. Confira se a chave TMDB está configurada e tente novamente." else ""
+                titles = repo.providerTitles(provider.value.id, type)
+                message = if (titles.isEmpty()) "Nenhum título retornado. Confira se a chave TMDB está configurada e tente novamente." else ""
             } catch (e: Exception) {
-                items = emptyList()
+                titles = emptyList()
                 message = e.message ?: "Não foi possível consultar os serviços."
             } finally { loading = false }
         }
@@ -75,7 +75,7 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
             }
             if (loading) item { SPText("Carregando títulos…", SPType.Body) }
             if (message.isNotBlank()) item { SPText(message, SPType.Body, color = SPColors.TextSecondary) }
-            items(items, key = { "${it.type}:${it.id}" }) { item ->
+            items(titles, key = { "${it.type}:${it.id}" }) { item ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     SPRemoteImage(item.posterUrl, Modifier.width(76.dp).height(110.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
