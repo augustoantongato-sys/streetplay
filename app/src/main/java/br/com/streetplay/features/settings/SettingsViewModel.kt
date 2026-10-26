@@ -22,21 +22,41 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val store: PrefsStore, private val xtreamStore: XtreamAccountStore, private val xtreamApi: XtreamApi) : ViewModel() {
-    private val _iptvConnected = MutableStateFlow(xtreamStore.load() != null)
+    private val _iptvConnected = MutableStateFlow(false)
     val iptvConnected = _iptvConnected.asStateFlow()
+    private val _iptvChecking = MutableStateFlow(xtreamStore.load() != null)
+    val iptvChecking = _iptvChecking.asStateFlow()
     private val _iptvMessage = MutableStateFlow("")
     val iptvMessage = _iptvMessage.asStateFlow()
+
+    init {
+        val saved = xtreamStore.load()
+        if (saved != null) viewModelScope.launch {
+            _iptvChecking.value = true
+            try {
+                xtreamApi.authenticate(saved)
+                _iptvConnected.value = true
+                _iptvMessage.value = "Conta IPTV validada."
+            } catch (e: Exception) {
+                _iptvConnected.value = false
+                _iptvMessage.value = e.message ?: "Sua conta precisa ser conectada novamente."
+            } finally { _iptvChecking.value = false }
+        }
+    }
+
     fun saveIptv(server: String, username: String, password: String) = viewModelScope.launch {
-        _iptvMessage.value = "Testando conexão…"
+        _iptvChecking.value = true
+        _iptvMessage.value = "Validando dados com o servidor IPTV…"
         try {
             val account = XtreamCredentials(server.trim().trimEnd('/'), username.trim(), password)
             xtreamApi.authenticate(account)
             xtreamStore.save(account)
             _iptvConnected.value = true
-            _iptvMessage.value = "Conta conectada com sucesso."
+            _iptvMessage.value = "Acesso liberado! Conta validada com sucesso."
         } catch (e: Exception) {
+            _iptvConnected.value = false
             _iptvMessage.value = e.message ?: "Não foi possível conectar."
-        }
+        } finally { _iptvChecking.value = false }
     }
     fun disconnectIptv() { xtreamStore.clear(); _iptvConnected.value = false; _iptvMessage.value = "Conta IPTV desconectada." }
     val prefs: StateFlow<UserPrefs> = store.prefs.stateIn(viewModelScope, SharingStarted.Eagerly, UserPrefs())
