@@ -94,9 +94,9 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
         SPSectionTitle("Plataformas")
         SPText("Toque em uma logo para abrir a plataforma oficial. Os títulos abaixo são os que o catálogo indica como disponíveis por assinatura no Brasil.", SPType.Caption, color = SPColors.TextSecondary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 12.dp)) {
-            SPButton(if (type == "movie") "Filmes •" else "Filmes") { type = "movie" }
-            SPButton(if (type == "tv") "Séries •" else "Séries") { type = "tv" }
-            SPButton("Atualizar") { loadProviders(forceRefresh = true); loadTitles(forceRefresh = true) }
+            SPButton(if (type == "movie") "Filmes •" else "Filmes", onClick = { type = "movie" })
+            SPButton(if (type == "tv") "Séries •" else "Séries", onClick = { type = "tv" })
+            SPButton("Atualizar", onClick = { loadProviders(forceRefresh = true); loadTitles(forceRefresh = true) })
         }
         if (providers.isNotEmpty()) {
             LazyColumn(contentPadding = PaddingValues(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
