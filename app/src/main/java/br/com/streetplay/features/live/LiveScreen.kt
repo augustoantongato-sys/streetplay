@@ -31,7 +31,6 @@ private sealed interface Row {
     val key: String
     data class Net(val g: NetworkGroup, val open: Boolean) : Row { override val key = "n:${g.key}" }
     data class Chan(val ch: LiveChannel, val nested: Boolean, val number: Int?, val uf: String? = null) : Row { override val key = "c:${ch.id}" }
-    data object Globoplay : Row { override val key = "globoplay" }
 }
 
 /** Canais no estilo IPTV: grupos à esquerda; à direita, emissoras como pastas (Globo, SBT, Band...) com todas as variações dentro. */
@@ -78,7 +77,6 @@ fun LiveScreen(
                 else {
                     val open = searching || g.key in expanded
                     add(Row.Net(g, open))
-                    if (open && g.key == "globo") add(Row.Globoplay)
                     if (open) g.channels.forEach { add(Row.Chan(it, true, null, if (g.key == "globo") Networks.stateOf(it) else null)) }
                 }
             }
@@ -134,7 +132,6 @@ fun LiveScreen(
                                 is Row.Net -> NetworkRow(row) {
                                     expanded = if (row.g.key in expanded) expanded - row.g.key else expanded + row.g.key
                                 }
-                                Row.Globoplay -> Box(Modifier.padding(start = 40.dp)) { GloboplayRow(onOpenGloboplay) }
                                 is Row.Chan -> Box(Modifier.padding(start = if (row.nested) 40.dp else 0.dp)) {
                                     ChannelRow(
                                         row.number, row.ch, status[row.ch.url], row.ch.id in favorites, row.uf,
