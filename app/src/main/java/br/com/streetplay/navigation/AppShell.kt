@@ -50,6 +50,8 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     val homeEntries by vm.homeEntries.collectAsStateWithLifecycle()
     val homePins by vm.homePins.collectAsStateWithLifecycle()
     val prefs by settingsVm.prefs.collectAsStateWithLifecycle()
+    val iptvConnected by settingsVm.iptvConnected.collectAsStateWithLifecycle()
+    val iptvMessage by settingsVm.iptvMessage.collectAsStateWithLifecycle()
     val trending by discoverVm.trending.collectAsStateWithLifecycle()
     val liveGroups by liveVm.groups.collectAsStateWithLifecycle()
     val liveFilters by liveVm.filters.collectAsStateWithLifecycle()
@@ -68,6 +70,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
 
     val contentFocus = remember { FocusRequester() }
     LaunchedEffect(dest) { if (dest == Destination.LIVE) liveVm.loadIfNeeded() }
+    LaunchedEffect(iptvConnected) { if (dest == Destination.LIVE) liveVm.reload() }
     LaunchedEffect(dest, playing == null, lite) { delay(80); runCatching { contentFocus.requestFocus() } }
 
     val byPkg = remember(apps) { apps.associateBy { it.packageName } }
@@ -110,6 +113,8 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             Destination.SETTINGS -> SettingsScreen(
                 prefs = prefs, onMode = settingsVm::setMode, onAccent = settingsVm::setAccent, onAnimations = settingsVm::setAnimations,
                 onManageFavorites = { dest = Destination.FAVORITES }, onAbout = { dest = Destination.ABOUT },
+                iptvConnected = iptvConnected, iptvMessage = iptvMessage,
+                onSaveIptv = settingsVm::saveIptv, onDisconnectIptv = settingsVm::disconnectIptv,
             )
             Destination.ABOUT -> AboutScreen()
         }
