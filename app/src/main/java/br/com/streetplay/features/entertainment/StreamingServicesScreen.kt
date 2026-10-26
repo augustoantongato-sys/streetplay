@@ -35,12 +35,12 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
     var message by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    fun load() {
+    fun load(forceRefresh: Boolean = false) {
         scope.launch {
             loading = true
             message = "Consultando disponibilidade no Brasil…"
             try {
-                titles = repo.providerTitles(provider.value.id, type)
+                titles = repo.providerTitles(provider.value.id, type, forceRefresh)
                 message = if (titles.isEmpty()) "Nenhum título retornado. Confira se a chave TMDB está configurada e tente novamente." else ""
             } catch (e: Exception) {
                 titles = emptyList()
@@ -70,7 +70,7 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SPButton(if (type == "movie") "Filmes •" else "Filmes") { type = "movie" }
                     SPButton(if (type == "tv") "Séries •" else "Séries") { type = "tv" }
-                    SPButton("Atualizar") { load() }
+                    SPButton("Atualizar") { load(forceRefresh = true) }
                 }
             }
             if (loading) item { SPText("Carregando títulos…", SPType.Body) }
