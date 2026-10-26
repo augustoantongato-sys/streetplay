@@ -42,6 +42,7 @@ fun SettingsScreen(
     onSaveIptv: (String, String, String) -> Unit,
     onDisconnectIptv: () -> Unit,
     modifier: Modifier = Modifier,
+    forceIptvLogin: Boolean = false,
 ) {
     val context = LocalContext.current
     val lite = LocalLite.current
@@ -50,7 +51,7 @@ fun SettingsScreen(
     }
     val other = if (prefs.mode == AppMode.STREET) AppMode.LITE else AppMode.STREET
     var pickColor by remember { mutableStateOf(false) }
-    var showIptv by remember { mutableStateOf(false) }
+    var showIptv by remember { mutableStateOf(forceIptvLogin) }
 
     if (pickColor) ColorPicker(prefs.accent, onAccent) { pickColor = false }
 
@@ -85,7 +86,7 @@ fun SettingsScreen(
     if (showIptv) IptvAccountDialog(
         connected = iptvConnected, message = iptvMessage,
         onSave = onSaveIptv, onDisconnect = onDisconnectIptv,
-        onDismiss = { showIptv = false },
+        onDismiss = { if (!forceIptvLogin) showIptv = false },
     )
 }
 
