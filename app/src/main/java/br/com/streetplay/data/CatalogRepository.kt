@@ -24,16 +24,19 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
     }
 
     /** Títulos que o TMDB associa a um serviço disponível no Brasil. Metadados apenas; reprodução depende do app oficial ou do IPTV do usuário. */
-    suspend fun providerTitles(providerId: Int, type: String): List<TrendingItem> {
+    suspend fun providerTitles(providerId: Int, type: String, forceRefresh: Boolean = false): List<TrendingItem> {
         if (tmdbToken.isBlank()) return emptyList()
         require(type == "movie" || type == "tv")
         val key = "provider_${providerId}_${type}"
-        val json = cache.cached(key, SIX_HOURS) {
+        val fetch: suspend () -> String = {
             Http.get(
                 "https://api.themoviedb.org/3/discover/$type?language=pt-BR&watch_region=BR&with_watch_providers=$providerId&with_watch_monetization_types=flatrate&sort_by=popularity.desc&page=1",
                 mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
             )
-        } ?: return emptyList()
+        }
+        val json = if (forceRefresh) runCatching { fetch().also { cache.write(key, it) } }.getOrElse { cache.readAny(key) }
+        else cache.cached(key, SIX_HOURS, fetch)
+        ?: return emptyList()
         return runCatching { TmdbParser.parseDiscover(json, type) }.getOrDefault(emptyList())
     }
 
