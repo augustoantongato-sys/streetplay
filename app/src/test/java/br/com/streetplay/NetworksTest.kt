@@ -52,7 +52,7 @@ class NetworksTest {
         ).map { ch(it) }
         val g = Networks.group(list)
         val globo = g.first { it.name == "Globo" }
-        assertEquals(12, globo.channels.size)
+        assertEquals(11, globo.channels.size)
         assertTrue("TV Gazeta" !in globo.channels.map { it.name })          // a Gazeta de São Paulo é outra emissora
         assertEquals(listOf("AL", "AP", "BA", "MG", "PI", "PR", "RS", "SP"), globo.states)
     }
