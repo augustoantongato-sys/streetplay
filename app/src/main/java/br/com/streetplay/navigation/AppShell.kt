@@ -91,7 +91,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                     shortcuts = shortcuts, entries = homeEntries,
                     favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
                     trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
-                    onMoreApps = { dest = Destination.APPS }, onMoreStreaming = { dest = Destination.ENTERTAINMENT },
+                    onMoreApps = { dest = Destination.APPS }, onMoreStreaming = { dest = Destination.SERVICES },
                     onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onServices = { dest = Destination.SERVICES },
                     onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
                 )
