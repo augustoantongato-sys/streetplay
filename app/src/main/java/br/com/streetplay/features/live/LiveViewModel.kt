@@ -74,7 +74,7 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
                 if (account == null) {
                     _progress.value = "Configure sua conta em Configurações > Conta IPTV para carregar os canais do seu provedor."
                     emptyList()
-                } else xtreamApi.liveChannels(account)
+                } else xtreamApi.liveChannels(account).filterNot { it.external }
             } catch (e: Exception) {
                 _progress.value = e.message ?: "Não foi possível carregar os canais."
                 emptyList()
