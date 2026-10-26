@@ -76,6 +76,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(start = 26.dp, end = 23.dp, top = 18.dp, bottom = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        item { HomeBanner(trending = trending, onStart = onServices, onDetails = { detail = it }) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SPText("PLATAFORMAS PARA ASSISTIR", RowSectionTitle)
