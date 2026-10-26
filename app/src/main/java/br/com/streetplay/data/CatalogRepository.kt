@@ -29,6 +29,20 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         return runCatching { TmdbParser.parseTrending(json) }.getOrDefault(emptyList())
     }
 
+    /** Títulos que o TMDB associa a um serviço disponível no Brasil. Metadados apenas; reprodução depende do app oficial ou do IPTV do usuário. */
+    suspend fun providerTitles(providerId: Int, type: String): List<TrendingItem> {
+        if (tmdbToken.isBlank()) return emptyList()
+        require(type == "movie" || type == "tv")
+        val key = "provider_${providerId}_${type}"
+        val json = cache.cached(key, SIX_HOURS) {
+            Http.get(
+                "https://api.themoviedb.org/3/discover/$type?language=pt-BR&watch_region=BR&with_watch_providers=$providerId&sort_by=popularity.desc&page=1",
+                mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
+            )
+        } ?: return emptyList()
+        return runCatching { TmdbParser.parseDiscover(json, type) }.getOrDefault(emptyList())
+    }
+
     /** Lista completa de canais. Baixa e organiza uma vez por dia; depois abre na hora. */
     suspend fun liveChannels(onProgress: (String) -> Unit): List<LiveChannel> = withContext(Dispatchers.Default) {
         cache.readFresh(INDEX_KEY, ONE_DAY)?.let { return@withContext LiveIndexCodec.decode(it) }
