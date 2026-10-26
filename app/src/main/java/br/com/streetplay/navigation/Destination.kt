@@ -9,7 +9,7 @@ enum class Destination(val icon: SPIconKind, val label: String, val inMenu: Bool
     APPS(SPIconKind.APPS, "Aplicativos"),
     ENTERTAINMENT(SPIconKind.STREAMING, "Apps de streaming"),
     SERVICES(SPIconKind.STREAMING, "Serviços"),
-    LIBRARY(SPIconKind.VIDEO, "Filmes e séries"),
+    LIBRARY(SPIconKind.STREAMING, "Filmes e séries"),
     LIVE(SPIconKind.TV, "Canais ao vivo"),
     FAVORITES(SPIconKind.FAVORITES, "Favoritos", inMenu = false),
     STORE(SPIconKind.STORE, "Loja"),
