@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.streetplay.core.storage.PrefsStore
 import br.com.streetplay.data.CatalogRepository
 import br.com.streetplay.data.remote.LiveLabels
+import br.com.streetplay.data.remote.Networks
 import br.com.streetplay.data.remote.StreamChecker
 import br.com.streetplay.domain.GroupKind
 import br.com.streetplay.domain.LiveChannel
@@ -73,7 +74,7 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
     }
 
     /** Países abrem agrupados por emissora (Globo, SBT, Band...); as demais listas, em ordem alfabética. */
-    fun selectGroup(id: String) { _filters.update { it.copy(group = id, query = "", grouped = id.startsWith("c:")) } }
+    fun selectGroup(id: String) { _filters.update { it.copy(group = id, query = "", grouped = id.startsWith("c:") || id.startsWith("bk:") || id == "br:regional") } }
     fun toggleGrouped() { _filters.update { it.copy(grouped = !it.grouped) } }
     fun setQuery(q: String) { _filters.update { it.copy(query = q) } }
     fun toggleFavorite(id: String) { viewModelScope.launch { prefs.toggleLiveFavorite(id) } }
@@ -96,6 +97,8 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
 }
 
 internal fun filterGroup(all: List<LiveChannel>, group: String, favs: Set<String>): List<LiveChannel> = when {
+    group == "br:regional" -> all.filter { it.country == "BR" && !Networks.isMajorBrazilian(it) }
+    group.startsWith("bk:") -> all.filter { it.country == "BR" && group.substring(3) in it.categories }
     group == "all" -> all
     group == "fav" -> all.filter { it.id in favs }
     group.startsWith("c:") -> all.filter { it.country == group.substring(2) }
@@ -116,5 +119,12 @@ internal fun buildGroups(all: List<LiveChannel>, favs: Set<String>): List<LiveGr
     val countries = all.groupingBy { it.country }.eachCount().filterKeys { it.isNotBlank() && it != "BR" }.entries
         .map { LiveGroup("c:${it.key}", LiveLabels.country(it.key), it.value, GroupKind.COUNTRY) }
         .sortedBy { it.label }
-    return main + cats + countries
+    val br = all.filter { it.country == "BR" }
+    val brKinds = listOf("news", "sports", "kids", "entertainment", "religious").mapNotNull { k ->
+        val n = br.count { k in it.categories }
+        if (n > 0) LiveGroup("bk:$k", LiveLabels.category(k), n, GroupKind.BRAZIL) else null
+    }
+    val regional = br.count { !Networks.isMajorBrazilian(it) }
+    val brazil = brKinds + if (regional > 0) listOf(LiveGroup("br:regional", "Regionais e outros", regional, GroupKind.BRAZIL)) else emptyList()
+    return main + brazil + cats + countries
 }

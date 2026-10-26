@@ -169,11 +169,22 @@ fun SPTile(
         value = if (packageName != null && installed) loader(packageName) else null
     }
     val tint = if (LocalLite.current) Color.White else brand
+    val bannerLoader = LocalBannerLoader.current
+    val banner by produceState<ImageBitmap?>(null, packageName, installed) {
+        value = if (packageName != null && installed) bannerLoader(packageName) else null
+    }
     SPFocusIndicator(
         onClick = onClick, onLongClick = onLongClick, modifier = modifier,
         container = SPColors.TileBase, focusedContainer = SPColors.TileFocused,
         focusScale = 1.06f, idleBorder = SPColors.Border,
     ) {
+        val bn = banner
+        if (bn != null) {
+            // banner oficial do app (o mesmo que a Android TV usa): ocupa o cartão inteiro
+            Image(bitmap = bn, contentDescription = label, contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(SPRadius.md)))
+            return@SPFocusIndicator
+        }
         Box(
             Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.30f), tint.copy(alpha = 0.05f)))),
             contentAlignment = Alignment.Center,
@@ -261,7 +272,7 @@ fun SPLogo(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.logo_sidebar), contentDescription = "Street Play",
         modifier = modifier, contentScale = ContentScale.Fit, alignment = Alignment.CenterStart,
-        colorFilter = if (LocalLite.current) ColorFilter.tint(Color.White) else null,
+        colorFilter = rememberLogoTint(),
     )
 }
 
@@ -310,7 +321,7 @@ fun SPSidebar(items: List<SPSidebarItem>, selectedId: String, onSelect: (String)
             }, accent.copy(alpha = 0.30f))
             drawPath(Path().apply {
                 moveTo(0f, h - 110.dp.toPx()); lineTo(95.dp.toPx(), h); lineTo(0f, h); close()
-            }, Brush.linearGradient(listOf(SPColors.OrangeSecondary, accent)))
+            }, Brush.linearGradient(listOf(lerp(accent, Color.White, 0.25f), accent)))
             drawRect(accent.copy(alpha = 0.18f), topLeft = androidx.compose.ui.geometry.Offset(w - 1.dp.toPx(), 0f),
                 size = androidx.compose.ui.geometry.Size(1.dp.toPx(), h))
         }

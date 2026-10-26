@@ -70,10 +70,30 @@ fun isExternalUrl(url: String): Boolean =
 /** Uma emissora e todas as variações dos seus canais (praças, notícias, esportes...). */
 data class NetworkGroup(val key: String, val name: String, val logo: String?, val channels: List<LiveChannel>, val rank: Int? = null, val states: List<String> = emptyList())
 
-enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY }
+enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY, BRAZIL }
 
 /** Grupo da lista de canais (como as pastas de um app de IPTV). */
 data class LiveGroup(val id: String, val label: String, val count: Int, val kind: GroupKind)
 
 /** Os dois modos do app. O usuário não escolhe cores nem fundo: só o modo. */
 enum class AppMode(val label: String) { STREET("Street Play"), LITE("Lite") }
+
+/** Cores principais do tema (o fundo continua escuro). Laranja é a cor da marca e o padrão. */
+enum class AccentTheme(val label: String, val argb: Long) {
+    ORANGE("Laranja", 0xFFFF6A00),
+    BLUE("Azul", 0xFF2F80FF),
+    PINK("Rosa", 0xFFFF4D9D),
+    YELLOW("Amarelo", 0xFFFFC107),
+    GREEN("Verde", 0xFF2ECC71),
+    PURPLE("Roxo", 0xFF9B5CFF),
+}
+
+/** Um item da fileira "Aplicativos" da Home. id = "sc:<atalho>" ou "pkg:<pacote>". */
+data class HomeEntry(
+    val id: String,
+    val label: String,
+    val packageName: String?,
+    val installed: Boolean,
+    val brandColor: Long,
+    val storePackage: String?,
+)

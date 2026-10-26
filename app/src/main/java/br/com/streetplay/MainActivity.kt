@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.streetplay.core.common.LocalBannerLoader
 import br.com.streetplay.core.common.LocalIconLoader
 import br.com.streetplay.core.design.SPTheme
 import br.com.streetplay.core.design.LocalRemoteImage
@@ -39,9 +40,10 @@ class MainActivity : ComponentActivity() {
             val dm = resources.displayMetrics
             val density = Density(density = maxOf(dm.widthPixels, dm.heightPixels) / 1280f, fontScale = 1f)
             CompositionLocalProvider(LocalDensity provides density) {
-                SPTheme(prefs.mode, prefs.animations) {
+                SPTheme(prefs.mode, prefs.accent, prefs.animations) {
                     CompositionLocalProvider(
                         LocalIconLoader provides launcherVm::loadIcon,
+                        LocalBannerLoader provides launcherVm::loadBanner,
                         LocalRemoteImage provides (application as StreetPlayApp).container.imageLoader::load,
                     ) {
                         AppShell(launcherVm, settingsVm, discoverVm, liveVm)

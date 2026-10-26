@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.streetplay.core.common.LocalIconLoader
 import br.com.streetplay.core.design.*
+import br.com.streetplay.domain.HomeEntry
 import br.com.streetplay.domain.InstalledApp
 import br.com.streetplay.domain.ShortcutState
 import br.com.streetplay.domain.TrendingItem
@@ -70,21 +71,23 @@ fun LiteTopBar(selected: Destination, onSelect: (Destination) -> Unit, modifier:
 
 @Composable
 fun LiteHomeScreen(
-    shortcuts: List<ShortcutState>,
+    entries: List<HomeEntry>,
     favorites: List<InstalledApp>,
     recents: List<InstalledApp>,
     trending: List<TrendingItem>,
     onOpen: (String) -> Unit,
     onOpenStoreListing: (String) -> Unit,
     onLive: () -> Unit,
+    onAddApps: () -> Unit,
+    onRemovePin: (String) -> Unit,
+    onMovePin: (String, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var missing by remember { mutableStateOf<ShortcutState?>(null) }
+    var missing by remember { mutableStateOf<HomeEntry?>(null) }
+    var menuEntry by remember { mutableStateOf<HomeEntry?>(null) }
     var detail by remember { mutableStateOf<TrendingItem?>(null) }
     val first = remember { FocusRequester() }
-    val byId = remember(shortcuts) { shortcuts.associateBy { it.shortcut.id } }
-    val row = remember(byId) { listOf("youtube", "netflix", "prime", "disney", "globoplay", "hbomax", "spotify", "playstore").mapNotNull { byId[it] } }
-    LaunchedEffect(row.isNotEmpty()) { if (row.isNotEmpty()) { delay(150); runCatching { first.requestFocus() } } }
+    LaunchedEffect(entries.isNotEmpty()) { if (entries.isNotEmpty()) { delay(150); runCatching { first.requestFocus() } } }
 
     LazyColumn(
         modifier.fillMaxSize(),
@@ -93,13 +96,15 @@ fun LiteHomeScreen(
     ) {
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp), contentPadding = PaddingValues(vertical = 14.dp)) {
-                itemsIndexed(row, key = { _, s -> s.shortcut.id }) { i, s ->
+                itemsIndexed(entries, key = { _, e -> e.id }) { i, e ->
                     LiteAppTile(
-                        label = s.shortcut.name, pkg = s.resolvedPackage ?: s.shortcut.packages.first(), installed = s.installed,
-                        onClick = { val pkg = s.resolvedPackage; if (pkg != null) onOpen(pkg) else missing = s },
+                        label = e.label, pkg = e.packageName, installed = e.installed,
+                        onClick = { val pkg = e.packageName; if (e.installed && pkg != null) onOpen(pkg) else missing = e },
+                        onLongClick = { menuEntry = e },
                         modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                     )
                 }
+                item { LiteIconTile("Adicionar", SPIconKind.PLUS, onAddApps) }
                 item { LiteIconTile("Canais", SPIconKind.TV, onLive) }
             }
         }
@@ -119,11 +124,20 @@ fun LiteHomeScreen(
         if (recents.isNotEmpty()) item { LiteAppsRow("Recentes", recents, onOpen) }
     }
 
-    missing?.let { s ->
-        SPDialog("${s.shortcut.name} não está instalado", onDismiss = { missing = null }) {
-            SPButton("Procurar na loja", { onOpenStoreListing(s.shortcut.packages.first()); missing = null })
+    missing?.let { e ->
+        SPDialog("${e.label} não está instalado", onDismiss = { missing = null }) {
+            e.storePackage?.let { st -> SPButton("Procurar na loja", { onOpenStoreListing(st); missing = null }) }
+            SPButton("Remover da tela inicial", { onRemovePin(e.id); missing = null })
             SPButton("Fechar", { missing = null })
         }
+    }
+    menuEntry?.let { e ->
+        val idx = entries.indexOfFirst { it.id == e.id }
+        HomeEntryDialog(
+            entry = e, canMoveBefore = idx > 0, canMoveAfter = idx in 0 until entries.lastIndex,
+            onOpen = { val pkg = e.packageName; if (e.installed && pkg != null) onOpen(pkg) else e.storePackage?.let(onOpenStoreListing) },
+            onRemove = { onRemovePin(e.id) }, onMove = { onMovePin(e.id, it) }, onDismiss = { menuEntry = null },
+        )
     }
     detail?.let { TrendingDetailsDialog(it) { detail = null } }
 }
@@ -147,13 +161,13 @@ private fun LiteAppsRow(title: String, apps: List<InstalledApp>, onOpen: (String
 
 /** Ícone grande, só com a imagem. O nome aparece apenas quando o item está em foco. */
 @Composable
-fun LiteAppTile(label: String, pkg: String?, installed: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, size: Dp = 116.dp) {
+fun LiteAppTile(label: String, pkg: String?, installed: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, size: Dp = 116.dp, onLongClick: (() -> Unit)? = null) {
     val loader = LocalIconLoader.current
     val icon by produceState<ImageBitmap?>(null, pkg, installed) { value = if (pkg != null && installed) loader(pkg) else null }
     var focused by remember { mutableStateOf(false) }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         SPFocusIndicator(
-            onClick = onClick, modifier = modifier.size(size).onFocusChanged { focused = it.hasFocus },
+            onClick = onClick, onLongClick = onLongClick, modifier = modifier.size(size).onFocusChanged { focused = it.hasFocus },
             shape = RoundedCornerShape(size * 0.23f), container = LiteColors.Tile, focusedContainer = LiteColors.TileFocused, focusScale = 1.1f,
         ) {
             Box(Modifier.fillMaxSize().alpha(if (installed) 1f else 0.4f), contentAlignment = Alignment.Center) {

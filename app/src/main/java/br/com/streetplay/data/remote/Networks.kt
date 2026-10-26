@@ -73,6 +73,10 @@ object Networks {
         return STATES.firstOrNull { it.first.containsMatchIn(n) }?.second
     }
 
+    /** Uma das grandes emissoras brasileiras (Globo, SBT, Record, Band...)? O resto é "regional". */
+    fun isMajorBrazilian(c: LiveChannel): Boolean =
+        c.country == "BR" && norm(c.name).let { n -> BR.any { it.second.containsMatchIn(n) } }
+
     private fun norm(s: String) = LiveIndexBuilder.sortKey(s)
 
     /** (chave, nome exibido, posição fixa na lista ou null) */

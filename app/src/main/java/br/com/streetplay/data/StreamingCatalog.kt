@@ -5,6 +5,11 @@ import br.com.streetplay.domain.StreamingShortcut
 object StreamingCatalog {
     const val PLAY_STORE_PACKAGE = "com.android.vending"
 
+    val DEFAULT_PINS = listOf(
+        "sc:youtube", "sc:netflix", "sc:prime", "sc:disney", "sc:globoplay",
+        "sc:hbomax", "sc:spotify", "sc:pluto", "sc:playstore",
+    )
+
     val all: List<StreamingShortcut> = listOf(
         StreamingShortcut("youtube", "YouTube", listOf("com.google.android.youtube.tv", "com.google.android.youtube"), 0xFFFF0000),
         StreamingShortcut("netflix", "Netflix", listOf("com.netflix.ninja", "com.netflix.mediaclient"), 0xFFE50914),

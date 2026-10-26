@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.streetplay.R
 import br.com.streetplay.core.design.*
+import br.com.streetplay.domain.HomeEntry
 import br.com.streetplay.domain.InstalledApp
 import br.com.streetplay.domain.ShortcutState
 import br.com.streetplay.domain.TrendingItem
@@ -42,6 +44,7 @@ private val RowSectionTitle = TextStyle(fontSize = 17.sp, fontWeight = FontWeigh
 @Composable
 fun HomeScreen(
     shortcuts: List<ShortcutState>,
+    entries: List<HomeEntry>,
     favorites: List<InstalledApp>,
     recents: List<InstalledApp>,
     trending: List<TrendingItem>,
@@ -50,13 +53,18 @@ fun HomeScreen(
     onMoreApps: () -> Unit,
     onMoreStreaming: () -> Unit,
     onLive: () -> Unit,
+    onAddApps: () -> Unit,
+    onRemovePin: (String) -> Unit,
+    onMovePin: (String, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var missing by remember { mutableStateOf<ShortcutState?>(null) }
+    var missingEntry by remember { mutableStateOf<HomeEntry?>(null) }
+    var menuEntry by remember { mutableStateOf<HomeEntry?>(null) }
     var detail by remember { mutableStateOf<TrendingItem?>(null) }
     val firstTile = remember { FocusRequester() }
     val byId = remember(shortcuts) { shortcuts.associateBy { it.shortcut.id } }
-    val hasShortcuts = shortcuts.isNotEmpty()
+    val hasShortcuts = entries.isNotEmpty()
     LaunchedEffect(hasShortcuts) {
         if (hasShortcuts) { delay(150); runCatching { firstTile.requestFocus() } }
     }
@@ -71,16 +79,17 @@ fun HomeScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SPText("Aplicativos", RowSectionTitle)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-                    listOf("youtube", "netflix", "prime", "disney", "hbomax", "spotify", "playstore")
-                        .mapNotNull { byId[it] }
-                        .forEachIndexed { i, s ->
-                            ShortcutTile(
-                                s, onOpen, { missing = s },
-                                Modifier.weight(1f).height(75.dp).then(if (i == 0) Modifier.focusRequester(firstTile) else Modifier),
-                            )
-                        }
-                    SPActionTile("Mais Apps", SPIconKind.DOTS, onMoreApps, Modifier.weight(1f).height(75.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap), contentPadding = PaddingValues(vertical = 6.dp)) {
+                    itemsIndexed(entries, key = { _, e -> e.id }) { i, e ->
+                        SPTile(
+                            label = e.label, packageName = e.packageName, installed = e.installed, brand = Color(e.brandColor),
+                            onClick = { val pkg = e.packageName; if (e.installed && pkg != null) onOpen(pkg) else missingEntry = e },
+                            onLongClick = { menuEntry = e },
+                            modifier = Modifier.width(133.dp).height(75.dp).then(if (i == 0) Modifier.focusRequester(firstTile) else Modifier),
+                        )
+                    }
+                    item { SPActionTile("Adicionar", SPIconKind.PLUS, onAddApps, Modifier.width(100.dp).height(75.dp)) }
+                    item { SPActionTile("Mais Apps", SPIconKind.DOTS, onMoreApps, Modifier.width(100.dp).height(75.dp)) }
                 }
             }
         }
@@ -115,6 +124,22 @@ fun HomeScreen(
             SPButton("Fechar", { missing = null })
         }
     }
+    missingEntry?.let { e ->
+        SPDialog("${e.label} não está instalado", onDismiss = { missingEntry = null }) {
+            SPText("Instale pela loja oficial do seu aparelho. O Street Play não distribui aplicativos.", SPType.Body, color = SPColors.TextSecondary)
+            e.storePackage?.let { st -> SPButton("Procurar na loja", { onOpenStoreListing(st); missingEntry = null }) }
+            SPButton("Remover da tela inicial", { onRemovePin(e.id); missingEntry = null })
+            SPButton("Fechar", { missingEntry = null })
+        }
+    }
+    menuEntry?.let { e ->
+        val idx = entries.indexOfFirst { it.id == e.id }
+        HomeEntryDialog(
+            entry = e, canMoveBefore = idx > 0, canMoveAfter = idx in 0 until entries.lastIndex,
+            onOpen = { val pkg = e.packageName; if (e.installed && pkg != null) onOpen(pkg) else e.storePackage?.let(onOpenStoreListing) },
+            onRemove = { onRemovePin(e.id) }, onMove = { onMovePin(e.id, it) }, onDismiss = { menuEntry = null },
+        )
+    }
     detail?.let { TrendingDetailsDialog(it) { detail = null } }
 }
 
@@ -134,7 +159,7 @@ private fun AppsRow(title: String, apps: List<InstalledApp>, onOpen: (String) ->
         SPText(title, RowSectionTitle)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap), contentPadding = PaddingValues(vertical = 6.dp)) {
             items(apps, key = { it.packageName }) { app ->
-                SPTile(app.label, app.packageName, true, SPColors.Orange, { onOpen(app.packageName) }, Modifier.width(114.dp).height(75.dp))
+                SPTile(app.label, app.packageName, true, LocalAccent.current, { onOpen(app.packageName) }, Modifier.width(114.dp).height(75.dp))
             }
         }
     }
@@ -234,7 +259,7 @@ private fun BrandSlide(onStart: () -> Unit, onFocus: (Boolean) -> Unit) {
         Image(
             painter = painterResource(R.drawable.logo_banner), contentDescription = null,
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 38.dp).height(176.dp),
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.Fit, colorFilter = rememberLogoTint(),
         )
     }
 }

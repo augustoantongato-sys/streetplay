@@ -63,6 +63,7 @@ fun LiveScreen(
         return
     }
     val main = groups.filter { it.kind == GroupKind.ALL || it.kind == GroupKind.FAVORITES || it.id == "c:BR" }
+    val brazil = groups.filter { it.kind == GroupKind.BRAZIL }
     val cats = groups.filter { it.kind == GroupKind.CATEGORY }
     val countries = groups.filter { it.kind == GroupKind.COUNTRY && it.id != "c:BR" }
 
@@ -102,6 +103,8 @@ fun LiveScreen(
         LazyColumn(Modifier.width(250.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
             item { SPText("Canais ao vivo", SPType.Title, Modifier.padding(bottom = 8.dp)) }
             items(main, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+            if (brazil.isNotEmpty()) item { GroupHeader("Brasil") }
+            items(brazil, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
             item { GroupHeader("Categorias") }
             items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
             item { GroupHeader("Países") }

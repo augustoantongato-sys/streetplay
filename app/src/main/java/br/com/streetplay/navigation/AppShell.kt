@@ -26,6 +26,7 @@ import br.com.streetplay.features.about.AboutScreen
 import br.com.streetplay.features.applications.AppsScreen
 import br.com.streetplay.features.entertainment.EntertainmentScreen
 import br.com.streetplay.features.favorites.FavoritesScreen
+import br.com.streetplay.features.home.AddAppsScreen
 import br.com.streetplay.features.home.DiscoverViewModel
 import br.com.streetplay.features.home.HomeScreen
 import br.com.streetplay.features.home.LauncherViewModel
@@ -46,6 +47,8 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     val favorites by vm.favorites.collectAsStateWithLifecycle()
     val recents by vm.recents.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
+    val homeEntries by vm.homeEntries.collectAsStateWithLifecycle()
+    val homePins by vm.homePins.collectAsStateWithLifecycle()
     val prefs by settingsVm.prefs.collectAsStateWithLifecycle()
     val trending by discoverVm.trending.collectAsStateWithLifecycle()
     val liveGroups by liveVm.groups.collectAsStateWithLifecycle()
@@ -75,14 +78,18 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
         when (dest) {
             Destination.HOME ->
                 if (lite) LiteHomeScreen(
-                    shortcuts = shortcuts, favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
+                    entries = homeEntries, favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
                     trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing, onLive = { dest = Destination.LIVE },
+                    onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
                 ) else HomeScreen(
-                    shortcuts = shortcuts, favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
+                    shortcuts = shortcuts, entries = homeEntries,
+                    favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
                     trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
                     onMoreApps = { dest = Destination.APPS }, onMoreStreaming = { dest = Destination.ENTERTAINMENT },
                     onLive = { dest = Destination.LIVE },
+                    onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
                 )
+            Destination.ADD_APPS -> AddAppsScreen(shortcuts, apps, homePins, vm::togglePin)
             Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
             Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
             Destination.LIVE -> LiveScreen(
@@ -101,7 +108,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             Destination.FAVORITES -> FavoritesScreen(apps, favorites, vm::open, vm::toggleFavorite, vm::moveFavorite)
             Destination.STORE -> Unit
             Destination.SETTINGS -> SettingsScreen(
-                prefs = prefs, onMode = settingsVm::setMode, onAnimations = settingsVm::setAnimations,
+                prefs = prefs, onMode = settingsVm::setMode, onAccent = settingsVm::setAccent, onAnimations = settingsVm::setAnimations,
                 onManageFavorites = { dest = Destination.FAVORITES }, onAbout = { dest = Destination.ABOUT },
             )
             Destination.ABOUT -> AboutScreen()
@@ -126,7 +133,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             }
             Row(Modifier.fillMaxSize()) {
                 SPSidebar(
-                    items = Destination.entries.map { it.toSidebarItem() },
+                    items = Destination.entries.filter { it.inMenu }.map { it.toSidebarItem() },
                     selectedId = dest.name,
                     onSelect = { navigate(Destination.valueOf(it)) },
                 )

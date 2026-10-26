@@ -8,6 +8,13 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -15,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import br.com.streetplay.core.common.openSystemScreen
 import br.com.streetplay.core.design.*
 import br.com.streetplay.core.storage.UserPrefs
+import br.com.streetplay.domain.AccentTheme
 import br.com.streetplay.domain.AppMode
 import java.util.Locale
 
@@ -22,6 +30,7 @@ import java.util.Locale
 fun SettingsScreen(
     prefs: UserPrefs,
     onMode: (AppMode) -> Unit,
+    onAccent: (AccentTheme) -> Unit,
     onAnimations: (Boolean) -> Unit,
     onManageFavorites: () -> Unit,
     onAbout: () -> Unit,
@@ -33,6 +42,9 @@ fun SettingsScreen(
         if (!context.openSystemScreen(action)) Toast.makeText(context, "Tela indisponível neste aparelho.", Toast.LENGTH_SHORT).show()
     }
     val other = if (prefs.mode == AppMode.STREET) AppMode.LITE else AppMode.STREET
+    var pickColor by remember { mutableStateOf(false) }
+
+    if (pickColor) ColorPicker(prefs.accent, onAccent) { pickColor = false }
 
     LazyColumn(
         modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = if (lite) 56.dp else SPSpacing.xl, vertical = SPSpacing.lg),
@@ -46,6 +58,9 @@ fun SettingsScreen(
                 value = prefs.mode.label,
             )
         }
+        if (!lite) item {
+            SPSettingsItem("Cor principal", { pickColor = true }, subtitle = "Botões, destaques, seleções e bordas", value = prefs.accent.label)
+        }
         item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, value = if (prefs.animations) "Ligadas" else "Desligadas") }
         item { SPSettingsItem("Gerenciar favoritos", onManageFavorites) }
         item { SPSettingsItem("Aparelho", {}, value = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}") }
@@ -57,6 +72,23 @@ fun SettingsScreen(
         item { SPSettingsItem("Wi-Fi", { system(Settings.ACTION_WIFI_SETTINGS) }) }
         item { SPSettingsItem("Bluetooth", { system(Settings.ACTION_BLUETOOTH_SETTINGS) }) }
         item { SPSettingsItem("Sobre", onAbout) }
+    }
+}
+
+@Composable
+private fun ColorPicker(current: AccentTheme, onPick: (AccentTheme) -> Unit, onDismiss: () -> Unit) {
+    SPDialog("Cor principal", onDismiss) {
+        AccentTheme.entries.forEach { t ->
+            SPFocusIndicator(onClick = { onPick(t); onDismiss() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(24.dp).clip(CircleShape).background(Color(t.argb)))
+                    Spacer(Modifier.width(14.dp))
+                    SPText(t.label, SPType.Body, Modifier.weight(1f))
+                    if (t == current) SPText("Atual", SPType.Caption)
+                }
+            }
+        }
+        SPButton("Fechar", onDismiss)
     }
 }
 

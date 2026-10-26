@@ -26,6 +26,7 @@ import kotlinx.coroutines.withContext
 class AppRepository(private val context: Context, private val db: AppDatabase) {
     private val pm = context.packageManager
     private val iconCache = LruCache<String, ImageBitmap>(96)
+    private val bannerCache = LruCache<String, ImageBitmap>(48)
 
     val favorites: Flow<List<String>> = db.favoriteDao().observe().map { l -> l.map { it.packageName } }
     fun recents(limit: Int): Flow<List<String>> = db.launchDao().recent(limit).map { l -> l.map { it.packageName } }
@@ -61,6 +62,15 @@ class AppRepository(private val context: Context, private val db: AppDatabase) {
         return withContext(Dispatchers.IO) {
             runCatching { pm.getApplicationIcon(pkg).toBitmap(192, 192).asImageBitmap() }
                 .getOrNull()?.also { iconCache.put(pkg, it) }
+        }
+    }
+
+    /** Banner 16:9 que o próprio app fornece para a Android TV; null se o app não tiver. */
+    suspend fun banner(pkg: String): ImageBitmap? {
+        bannerCache.get(pkg)?.let { return it }
+        return withContext(Dispatchers.IO) {
+            runCatching { pm.getApplicationBanner(pkg)?.toBitmap(320, 180)?.asImageBitmap() }
+                .getOrNull()?.also { bannerCache.put(pkg, it) }
         }
     }
 
