@@ -101,7 +101,7 @@ private fun IptvAccountDialog(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     SPDialog("Conta IPTV", onDismiss) {
-        SPText("Informe o servidor, usuário e senha fornecidos pelo seu próprio provedor. Os dados ficam cifrados neste aparelho.", SPType.Body, color = SPColors.TextSecondary)
+        SPText("Informe o servidor, usuário e senha fornecidos pelo seu próprio provedor. Os dados ficam cifrados neste aparelho. Prefira HTTPS: em servidores HTTP, os dados trafegam sem criptografia pela rede.", SPType.Body, color = SPColors.TextSecondary)
         IptvInput(server, { server = it }, "Servidor (ex.: https://servidor.com)")
         IptvInput(username, { username = it }, "Usuário")
         IptvInput(password, { password = it }, "Senha", secret = true)
