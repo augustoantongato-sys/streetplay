@@ -25,6 +25,8 @@ import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.features.about.AboutScreen
 import br.com.streetplay.features.applications.AppsScreen
 import br.com.streetplay.features.entertainment.EntertainmentScreen
+import br.com.streetplay.features.entertainment.IptvLibraryScreen
+import br.com.streetplay.features.entertainment.StreamingServicesScreen
 import br.com.streetplay.features.favorites.FavoritesScreen
 import br.com.streetplay.features.home.AddAppsScreen
 import br.com.streetplay.features.home.DiscoverViewModel
@@ -83,18 +85,21 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                 if (lite) LiteHomeScreen(
                     entries = homeEntries, favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
                     trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing, onLive = { dest = Destination.LIVE },
+                    onLibrary = { dest = Destination.LIBRARY }, onServices = { dest = Destination.SERVICES },
                     onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
                 ) else HomeScreen(
                     shortcuts = shortcuts, entries = homeEntries,
                     favorites = favorites.mapNotNull { byPkg[it] }, recents = recents.mapNotNull { byPkg[it] },
                     trending = trending, onOpen = vm::open, onOpenStoreListing = vm::openStoreListing,
                     onMoreApps = { dest = Destination.APPS }, onMoreStreaming = { dest = Destination.ENTERTAINMENT },
-                    onLive = { dest = Destination.LIVE },
+                    onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onServices = { dest = Destination.SERVICES },
                     onAddApps = { dest = Destination.ADD_APPS }, onRemovePin = vm::togglePin, onMovePin = vm::movePin,
                 )
             Destination.ADD_APPS -> AddAppsScreen(shortcuts, apps, homePins, vm::togglePin)
             Destination.APPS -> AppsScreen(apps, favorites, loading, vm::open, vm::toggleFavorite)
             Destination.ENTERTAINMENT -> EntertainmentScreen(shortcuts, apps, vm::open)
+            Destination.LIBRARY -> IptvLibraryScreen(onPlay = { ch -> playing = listOf(ch) to 0 })
+            Destination.SERVICES -> StreamingServicesScreen()
             Destination.LIVE -> LiveScreen(
                 groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
                 loading = liveLoading, progress = liveProgress,
