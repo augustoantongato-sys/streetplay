@@ -1,4 +1,5 @@
 name: Android build
+# Rebuild after fixing Compose button callbacks
 
 on:
   workflow_dispatch:
