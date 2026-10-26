@@ -89,7 +89,7 @@ fun HomeScreen(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SPText("Streaming", RowSectionTitle)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-                    listOf("netflix", "prime", "disney", "hbomax", "youtube").mapNotNull { byId[it] }.forEach { s ->
+                    listOf("netflix", "prime", "disney", "globoplay", "hbomax", "youtube").mapNotNull { byId[it] }.forEach { s ->
                         ShortcutTile(s, onOpen, { missing = s }, Modifier.weight(1f).height(70.dp))
                     }
                     SPActionTile("Canais ao Vivo", SPIconKind.TV, onLive, Modifier.weight(1f).height(70.dp))

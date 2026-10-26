@@ -68,7 +68,7 @@ fun isExternalUrl(url: String): Boolean =
     url.contains("youtube.com", true) || url.contains("youtu.be", true) || url.contains("twitch.tv", true)
 
 /** Uma emissora e todas as variações dos seus canais (praças, notícias, esportes...). */
-data class NetworkGroup(val key: String, val name: String, val logo: String?, val channels: List<LiveChannel>, val rank: Int? = null)
+data class NetworkGroup(val key: String, val name: String, val logo: String?, val channels: List<LiveChannel>, val rank: Int? = null, val states: List<String> = emptyList())
 
 enum class GroupKind { ALL, FAVORITES, COUNTRY, CATEGORY }
 

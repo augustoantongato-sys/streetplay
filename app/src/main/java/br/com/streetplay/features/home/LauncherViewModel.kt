@@ -52,6 +52,13 @@ class LauncherViewModel(private val repo: AppRepository) : ViewModel() {
         else if (!repo.launch(pkg)) _messages.emit("Não foi possível abrir a Play Store.")
     }
 
+    /** Globoplay (app oficial): abre se estiver instalado; senão leva à ficha na loja. */
+    fun openGloboplay() {
+        val g = StreamingCatalog.all.first { it.id == "globoplay" }
+        val pkg = StreamingCatalog.resolve(g, repo::isInstalled)
+        if (pkg != null) open(pkg) else openStoreListing(g.packages.first())
+    }
+
     fun openStoreListing(pkg: String) {
         if (!repo.openStoreListing(pkg)) _messages.tryEmit("Este aparelho não tem uma loja de aplicativos instalada.")
     }

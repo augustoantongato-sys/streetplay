@@ -88,7 +88,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
             Destination.LIVE -> LiveScreen(
                 groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
                 loading = liveLoading, progress = liveProgress,
-                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleGrouped = liveVm::toggleGrouped, onCheck = liveVm::checkChannels,
+                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleGrouped = liveVm::toggleGrouped, onOpenGloboplay = vm::openGloboplay, onCheck = liveVm::checkChannels,
                 onPlay = { list, ch ->
                     if (ch.external) {
                         if (!context.openUrl(ch.url)) Toast.makeText(context, "Instale o app do YouTube ou da Twitch para abrir este canal.", Toast.LENGTH_LONG).show()

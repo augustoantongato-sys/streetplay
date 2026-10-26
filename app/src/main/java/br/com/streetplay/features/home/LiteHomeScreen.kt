@@ -83,7 +83,7 @@ fun LiteHomeScreen(
     var detail by remember { mutableStateOf<TrendingItem?>(null) }
     val first = remember { FocusRequester() }
     val byId = remember(shortcuts) { shortcuts.associateBy { it.shortcut.id } }
-    val row = remember(byId) { listOf("youtube", "netflix", "prime", "disney", "hbomax", "spotify", "playstore").mapNotNull { byId[it] } }
+    val row = remember(byId) { listOf("youtube", "netflix", "prime", "disney", "globoplay", "hbomax", "spotify", "playstore").mapNotNull { byId[it] } }
     LaunchedEffect(row.isNotEmpty()) { if (row.isNotEmpty()) { delay(150); runCatching { first.requestFocus() } } }
 
     LazyColumn(

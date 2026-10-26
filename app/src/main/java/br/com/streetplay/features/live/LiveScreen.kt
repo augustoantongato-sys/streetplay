@@ -30,7 +30,8 @@ import java.text.Normalizer
 private sealed interface Row {
     val key: String
     data class Net(val g: NetworkGroup, val open: Boolean) : Row { override val key = "n:${g.key}" }
-    data class Chan(val ch: LiveChannel, val nested: Boolean, val number: Int?) : Row { override val key = "c:${ch.id}" }
+    data class Chan(val ch: LiveChannel, val nested: Boolean, val number: Int?, val uf: String? = null) : Row { override val key = "c:${ch.id}" }
+    data object Globoplay : Row { override val key = "globoplay" }
 }
 
 /** Canais no estilo IPTV: grupos à esquerda; à direita, emissoras como pastas (Globo, SBT, Band...) com todas as variações dentro. */
@@ -46,6 +47,7 @@ fun LiveScreen(
     onSelectGroup: (String) -> Unit,
     onQuery: (String) -> Unit,
     onToggleGrouped: () -> Unit,
+    onOpenGloboplay: () -> Unit,
     onCheck: (List<LiveChannel>) -> Unit,
     onPlay: (List<LiveChannel>, LiveChannel) -> Unit,
     onToggleFavorite: (String) -> Unit,
@@ -75,7 +77,8 @@ fun LiveScreen(
                 else {
                     val open = searching || g.key in expanded
                     add(Row.Net(g, open))
-                    if (open) g.channels.forEach { add(Row.Chan(it, true, null)) }
+                    if (open && g.key == "globo") add(Row.Globoplay)
+                    if (open) g.channels.forEach { add(Row.Chan(it, true, null, if (g.key == "globo") Networks.stateOf(it) else null)) }
                 }
             }
         }
@@ -128,9 +131,10 @@ fun LiveScreen(
                                 is Row.Net -> NetworkRow(row) {
                                     expanded = if (row.g.key in expanded) expanded - row.g.key else expanded + row.g.key
                                 }
+                                Row.Globoplay -> Box(Modifier.padding(start = 40.dp)) { GloboplayRow(onOpenGloboplay) }
                                 is Row.Chan -> Box(Modifier.padding(start = if (row.nested) 40.dp else 0.dp)) {
                                     ChannelRow(
-                                        row.number, row.ch, status[row.ch.url], row.ch.id in favorites,
+                                        row.number, row.ch, status[row.ch.url], row.ch.id in favorites, row.uf,
                                         onClick = { onPlay(playlist, row.ch) }, onLong = { onToggleFavorite(row.ch.id) },
                                     )
                                 }
@@ -161,7 +165,7 @@ fun LiveScreen(
 private fun rowLetters(rows: List<Row>): List<Pair<Char, Int>> {
     val first = LinkedHashMap<Char, Int>()
     rows.forEachIndexed { i, r ->
-        val name = when (r) { is Row.Net -> r.g.name; is Row.Chan -> if (r.nested) null else r.ch.name }
+        val name = when (r) { is Row.Net -> r.g.name; is Row.Chan -> if (r.nested) null else r.ch.name; Row.Globoplay -> null }
         if (name != null) first.putIfAbsent(letterOf(name), i)
     }
     return first.entries.sortedBy { if (it.key == '#') 0.toChar() else it.key }.map { it.key to it.value }
@@ -213,7 +217,7 @@ private fun NetworkRow(row: Row.Net, onClick: () -> Unit) {
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 SPText(row.g.name, TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SPColors.TextPrimary), maxLines = 1)
-                SPText("${row.g.channels.size} canais", SPType.Caption)
+                SPText("${row.g.channels.size} canais" + if (row.g.states.isNotEmpty()) " · " + row.g.states.joinToString(" ") else "", SPType.Caption, maxLines = 1)
             }
             Canvas(Modifier.size(14.dp)) {
                 val w = size.width; val h = size.height
@@ -231,7 +235,7 @@ private fun NetworkRow(row: Row.Net, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ChannelRow(number: Int?, ch: LiveChannel, alive: Boolean?, fav: Boolean, onClick: () -> Unit, onLong: () -> Unit) {
+private fun ChannelRow(number: Int?, ch: LiveChannel, alive: Boolean?, fav: Boolean, uf: String?, onClick: () -> Unit, onLong: () -> Unit) {
     val accent = LocalAccent.current
     val lite = LocalLite.current
     val dead = alive == false
@@ -246,10 +250,24 @@ private fun ChannelRow(number: Int?, ch: LiveChannel, alive: Boolean?, fav: Bool
             }
             Spacer(Modifier.width(14.dp))
             SPText(ch.name, SPType.Body, Modifier.weight(1f), maxLines = 1)
+            if (uf != null) SPText(uf, TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accent), Modifier.padding(start = 8.dp))
             if (dead) SPText("Fora do ar", SPType.Caption, Modifier.padding(start = 8.dp))
             else if (ch.external) SPText(if (ch.url.contains("twitch", true)) "Twitch" else "YouTube", SPType.Caption, Modifier.padding(start = 8.dp))
             else if (!lite && ch.quality != null) SPText(ch.quality, SPType.Caption, Modifier.padding(start = 8.dp))
             if (fav) { Spacer(Modifier.width(10.dp)); SPIcon(SPIconKind.FAVORITES, tint = accent, size = 16.dp) }
+        }
+    }
+}
+
+/** Atalho para o app oficial: a Globo de cada praça costuma estar lá (normalmente com login). */
+@Composable
+private fun GloboplayRow(onClick: () -> Unit) {
+    SPFocusIndicator(
+        onClick = onClick, modifier = Modifier.fillMaxWidth().height(54.dp),
+        shape = RoundedCornerShape(12.dp), container = SPColors.Card, focusedContainer = SPColors.CardFocused, focusScale = 1.02f,
+    ) {
+        Row(Modifier.fillMaxSize().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            SPText("Abrir o Globoplay (app oficial) — Globo ao vivo de outros estados", SPType.Label, Modifier.weight(1f), maxLines = 1)
         }
     }
 }

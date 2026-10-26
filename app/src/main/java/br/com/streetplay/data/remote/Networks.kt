@@ -7,7 +7,13 @@ import br.com.streetplay.domain.NetworkGroup
 object Networks {
     /** Emissoras brasileiras conhecidas, na ordem em que aparecem na lista. */
     private val BR = listOf(
-        "Globo" to Regex("""\bglobo"""),
+        "Globo" to Regex(
+            """\bglobo|\brbs tv|\beptv|\btv anhanguera|\btv integracao|\brpc tv|\btv bahia|\btv clube|\btv sul bahia|""" +
+                """\btv sul de minas|\btv fronteira|\btv diario macapa|\btv verdes mares|\btv asa branca|\btv mirante|""" +
+                """\btv liberal|\brede amazonica|\btv tem\b|\btv morena|\btv centro america|\btv sergipe|""" +
+                """\btv gazeta (alagoas|acre|espirito santo)|\btv pajucara|\btv cabo branco|\btv subae|\btv santa cruz|""" +
+                """\btv rio sul|\btv vanguarda|\btv sao francisco|\btv tapajos|\btv amapa|\btv acre|\btv roraima|\btv grande rio"""
+        ),
         "SBT" to Regex("""\bsbt\b"""),
         "Record" to Regex("""\brecord"""),
         "Band" to Regex("""(^|\s)band(news|sports)?(\s|$)|bandeirantes"""),
@@ -32,6 +38,40 @@ object Networks {
     )
     private val BRACKETS = Regex("""[(\[].*?[)\]]""")
     private val SPLIT = Regex("""[\s\-_/|]+""")
+
+    /** Estado (UF) das emissoras da família Globo, a partir do nome. */
+    private val STATES = listOf(
+        Regex("""eptv sul de minas|tv sul de minas|globo minas|tv integracao""") to "MG",
+        Regex("""eptv|\btv tem\b|tv fronteira|tv vanguarda|globo sao paulo|globo sp""") to "SP",
+        Regex("""globo rio|tv rio sul|tv grande rio""") to "RJ",
+        Regex("""globo brasilia""") to "DF",
+        Regex("""globo nordeste|tv asa branca""") to "PE",
+        Regex("""tv bahia|tv sul bahia|tv subae|tv santa cruz|tv sao francisco""") to "BA",
+        Regex("""tv clube""") to "PI",
+        Regex("""tv diario macapa|tv amapa""") to "AP",
+        Regex("""rbs tv (florianopolis|blumenau|joinville|chapeco|criciuma)""") to "SC",
+        Regex("""rbs tv""") to "RS",
+        Regex("""\brpc\b""") to "PR",
+        Regex("""tv anhanguera""") to "GO",
+        Regex("""tv morena""") to "MS",
+        Regex("""tv centro america""") to "MT",
+        Regex("""rede amazonica (ariquemes|ji parana|porto velho)""") to "RO",
+        Regex("""rede amazonica""") to "AM",
+        Regex("""tv liberal|tv tapajos""") to "PA",
+        Regex("""tv mirante""") to "MA",
+        Regex("""tv verdes mares""") to "CE",
+        Regex("""tv sergipe""") to "SE",
+        Regex("""tv gazeta alagoas|tv pajucara""") to "AL",
+        Regex("""tv gazeta espirito santo""") to "ES",
+        Regex("""tv gazeta acre|tv acre""") to "AC",
+        Regex("""tv roraima""") to "RR",
+        Regex("""tv cabo branco""") to "PB",
+    )
+
+    fun stateOf(c: LiveChannel): String? {
+        val n = norm(c.name)
+        return STATES.firstOrNull { it.first.containsMatchIn(n) }?.second
+    }
 
     private fun norm(s: String) = LiveIndexBuilder.sortKey(s)
 
@@ -68,6 +108,7 @@ object Networks {
                     logo = list.firstNotNullOfOrNull { it.logo },
                     channels = list,
                     rank = b.rank,
+                    states = if (b.key == "globo") list.mapNotNull { stateOf(it) }.distinct().sorted() else emptyList(),
                 )
             }
             .sortedWith(compareBy({ it.rank ?: Int.MAX_VALUE }, { norm(it.name) }))
