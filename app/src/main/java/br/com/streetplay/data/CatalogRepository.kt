@@ -30,7 +30,7 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         val key = "provider_${providerId}_${type}"
         val json = cache.cached(key, SIX_HOURS) {
             Http.get(
-                "https://api.themoviedb.org/3/discover/$type?language=pt-BR&watch_region=BR&with_watch_providers=$providerId&sort_by=popularity.desc&page=1",
+                "https://api.themoviedb.org/3/discover/$type?language=pt-BR&watch_region=BR&with_watch_providers=$providerId&with_watch_monetization_types=flatrate&sort_by=popularity.desc&page=1",
                 mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
             )
         } ?: return emptyList()
