@@ -1,11 +1,19 @@
 package br.com.streetplay.features.entertainment
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import br.com.streetplay.StreetPlayApp
 import br.com.streetplay.core.design.*
@@ -17,7 +25,7 @@ import kotlinx.coroutines.launch
 
 private enum class LibraryTab { MOVIES, SERIES }
 
-/** Biblioteca pessoal: só exibe o catálogo autorizado pelo servidor Xtream configurado pelo usuário. */
+/** Experiência cinematográfica para filmes e séries, com foco/controle remoto e toque. */
 @Composable
 fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifier) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -29,7 +37,9 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifi
     var movies by remember { mutableStateOf<List<XtreamVodItem>>(emptyList()) }
     var series by remember { mutableStateOf<List<XtreamSeriesItem>>(emptyList()) }
     var episodes by remember { mutableStateOf<List<XtreamEpisode>>(emptyList()) }
+    var selectedMovie by remember { mutableStateOf<XtreamVodItem?>(null) }
     var selectedSeries by remember { mutableStateOf<XtreamSeriesItem?>(null) }
+    var selectedSeason by remember { mutableIntStateOf(1) }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
 
@@ -42,91 +52,158 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifi
                 if (tab == LibraryTab.MOVIES) movies = api.movies(account) else series = api.series(account)
                 message = if ((if (tab == LibraryTab.MOVIES) movies.size else series.size) == 0)
                     "Seu provedor não retornou itens nesta seção." else ""
-            } catch (e: Exception) {
-                message = e.message ?: "Não foi possível carregar o catálogo."
-            } finally { loading = false }
+            } catch (e: Exception) { message = e.message ?: "Não foi possível carregar o catálogo." }
+            finally { loading = false }
         }
     }
-    LaunchedEffect(tab, account) { selectedSeries = null; episodes = emptyList(); refresh() }
+    LaunchedEffect(tab, account) {
+        selectedMovie = null; selectedSeries = null; episodes = emptyList(); refresh()
+    }
 
-    Column(modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        SPSectionTitle("Filmes e séries do seu IPTV")
-        SPText("Conteúdo fornecido pela sua própria assinatura. A disponibilidade depende do seu provedor.", SPType.Caption, color = SPColors.TextSecondary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 12.dp)) {
-            SPButton(if (tab == LibraryTab.MOVIES) "Filmes • selecionado" else "Filmes", onClick = { tab = LibraryTab.MOVIES })
-            SPButton(if (tab == LibraryTab.SERIES) "Séries • selecionado" else "Séries", onClick = { tab = LibraryTab.SERIES })
+    val dark = Color(0xFF080B10)
+    val accent = LocalAccent.current
+    Column(
+        modifier.fillMaxSize().background(dark).padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SPText("STREET PLAY", SPType.Title, color = accent)
+            Spacer(Modifier.weight(1f))
+            SPButton("Filmes", onClick = { tab = LibraryTab.MOVIES; selectedMovie = null; selectedSeries = null }, selected = tab == LibraryTab.MOVIES)
+            SPButton("Séries", onClick = { tab = LibraryTab.SERIES; selectedMovie = null; selectedSeries = null }, selected = tab == LibraryTab.SERIES)
             SPButton("Atualizar", onClick = { refresh() })
         }
-        if (message.isNotBlank()) SPText(message, SPType.Body, color = SPColors.TextSecondary)
-        if (loading) SPText("Carregando…", SPType.Body)
+        if (message.isNotBlank()) SPText(message, SPType.Caption, color = SPColors.TextSecondary)
+        if (loading) SPText("Carregando catálogo…", SPType.Body, color = Color.White)
+
         if (selectedSeries != null) {
-            SPButton("← Voltar para séries", onClick = { selectedSeries = null; episodes = emptyList() })
-            SPSectionTitle(selectedSeries!!.name)
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(episodes, key = { it.id }) { ep ->
-                    SPFocusIndicator(onClick = {
-                        val s = selectedSeries!!
-                        val url = api.playbackUrl(account!!, "series", ep.id, ep.extension ?: ep.container)
-                        onPlay(LiveChannel("xtream-episode:${ep.id}", "${s.name} • T${ep.season} E${ep.episode}", s.cover, "BR", listOf("series"), url))
-                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                        Column(Modifier.padding(14.dp)) {
-                            SPText("Temporada ${ep.season} • Episódio ${ep.episode}", SPType.Label)
-                            SPText(ep.title, SPType.Body)
+            val current = selectedSeries!!
+            val seasons = episodes.map { it.season }.distinct().sorted()
+            Row(Modifier.fillMaxSize().focusGroup(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                Column(Modifier.weight(0.42f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SPButton("← Voltar às séries", onClick = { selectedSeries = null; episodes = emptyList() })
+                    SPRemoteImage(current.cover, Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(16.dp)))
+                    SPText(current.name, SPType.Title, color = Color.White, maxLines = 2)
+                    current.rating?.takeIf { it.isNotBlank() }?.let { SPText("Nota $it", SPType.Caption, color = SPColors.TextSecondary) }
+                    current.plot?.takeIf { it.isNotBlank() }?.let { SPText(it, SPType.Body, color = SPColors.TextSecondary, maxLines = 5) }
+                }
+                Column(Modifier.weight(0.58f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SPText("Episódios", SPType.Title, color = Color.White)
+                    if (seasons.isNotEmpty()) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(seasons) { season ->
+                                SPButton("Temporada $season", onClick = { selectedSeason = season }, selected = selectedSeason == season)
+                            }
+                        }
+                    }
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        items(episodes.filter { it.season == (seasons.firstOrNull { s -> s == selectedSeason } ?: seasons.firstOrNull()) }, key = { it.id }) { ep ->
+                            SPFocusIndicator(
+                                onClick = {
+                                    val url = api.playbackUrl(account!!, "series", ep.id, ep.extension ?: ep.container)
+                                    onPlay(LiveChannel("xtream-episode:${ep.id}", "${current.name} • T${ep.season} E${ep.episode}", current.cover, "BR", listOf("series"), url))
+                                },
+                                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    SPRemoteImage(current.cover, Modifier.width(112.dp).height(66.dp).clip(RoundedCornerShape(8.dp)))
+                                    Column(Modifier.weight(1f)) {
+                                        SPText("E${ep.episode} • ${ep.title}", SPType.Label, color = Color.White, maxLines = 2)
+                                        SPText("Temporada ${ep.season}", SPType.Caption, color = SPColors.TextSecondary)
+                                    }
+                                    SPText("▶", SPType.Title, color = accent)
+                                }
+                            }
                         }
                     }
                 }
             }
-        } else if (tab == LibraryTab.MOVIES) {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(movies, key = { it.id }) { item ->
-                    SPFocusIndicator(onClick = {
+        } else if (selectedMovie != null) {
+            val movie = selectedMovie!!
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                SPRemoteImage(movie.poster, Modifier.weight(0.42f).fillMaxHeight().clip(RoundedCornerShape(18.dp)))
+                Column(Modifier.weight(0.58f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    SPButton("← Voltar aos filmes", onClick = { selectedMovie = null })
+                    SPText(movie.name, SPType.Display, color = Color.White, maxLines = 3)
+                    movie.rating?.takeIf { it.isNotBlank() }?.let { SPText("Nota $it", SPType.Label, color = accent) }
+                    movie.plot?.takeIf { it.isNotBlank() }?.let { SPText(it, SPType.Body, color = SPColors.TextSecondary, maxLines = 8) }
+                    Spacer(Modifier.height(8.dp))
+                    SPButton("▶  Assistir agora", onClick = {
                         if (account != null) scope.launch {
+                            loading = true
                             try {
-                                val detail = api.movieInfo(account, item.id)
-                                val ext = detail?.extension ?: item.extension
-                                val url = api.playbackUrl(account, "movie", item.id, ext)
-                                onPlay(LiveChannel("xtream-movie:${item.id}", item.name, detail?.poster ?: item.poster, "BR", listOf("movies"), url))
+                                val detail = api.movieInfo(account, movie.id)
+                                val url = api.playbackUrl(account, "movie", movie.id, detail?.extension ?: movie.extension)
+                                onPlay(LiveChannel("xtream-movie:${movie.id}", movie.name, detail?.poster ?: movie.poster, "BR", listOf("movies"), url))
                             } catch (e: Exception) { message = e.message ?: "Falha ao abrir filme." }
+                            finally { loading = false }
                         }
-                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            SPRemoteImage(item.poster, Modifier.width(58.dp).height(82.dp))
-                            Column(Modifier.weight(1f)) {
-                                SPText(item.name, SPType.Label, maxLines = 2)
-                                SPText("Filme • abrir reprodução", SPType.Caption, color = SPColors.TextSecondary)
-                                item.rating?.let { SPText("Nota: $it", SPType.Caption) }
-                            }
+                    })
+                }
+            }
+        } else if (tab == LibraryTab.MOVIES) {
+            val hero = movies.firstOrNull()
+            if (hero != null) {
+                Box(Modifier.fillMaxWidth().height(224.dp).clip(RoundedCornerShape(18.dp))) {
+                    SPRemoteImage(hero.poster, Modifier.fillMaxSize(), ContentScale.Crop)
+                    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color(0xF0080B10), Color(0x99080B10), Color.Transparent))))
+                    Column(Modifier.align(Alignment.CenterStart).widthIn(max = 430.dp).padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SPText("DESTAQUE", SPType.Caption, color = accent)
+                        SPText(hero.name, SPType.Display, color = Color.White, maxLines = 2)
+                        SPText("Assista aos filmes disponíveis na sua assinatura", SPType.Body, color = Color(0xFFE0E0E0), maxLines = 2)
+                        SPButton("Ver detalhes", onClick = { selectedMovie = hero })
+                    }
+                }
+            }
+            SPText("Continue assistindo", SPType.Title, color = Color.White)
+            LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                items(movies, key = { it.id }) { item ->
+                    SPFocusIndicator(
+                        onClick = { selectedMovie = item },
+                        modifier = Modifier.width(164.dp).fillMaxHeight(),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Column(Modifier.fillMaxSize()) {
+                            SPRemoteImage(item.poster, Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(10.dp)))
+                            Spacer(Modifier.height(7.dp))
+                            SPText(item.name, SPType.Label, color = Color.White, maxLines = 2)
+                            SPText("Filme", SPType.Caption, color = SPColors.TextSecondary)
                         }
                     }
                 }
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SPText("Séries para assistir", SPType.Title, color = Color.White)
+            LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 items(series, key = { it.id }) { item ->
-                    SPFocusIndicator(onClick = {
-                        if (account != null) scope.launch {
-                            loading = true
-                            try {
-                                selectedSeries = item
-                                episodes = api.seriesInfo(account, item.id)
-                                message = if (episodes.isEmpty()) "Nenhum episódio retornado pelo provedor." else ""
-                            } catch (e: Exception) {
-                                selectedSeries = null
-                                message = e.message ?: "Falha ao carregar episódios."
-                            } finally { loading = false }
-                        }
-                    }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            SPRemoteImage(item.cover, Modifier.width(58.dp).height(82.dp))
-                            Column(Modifier.weight(1f)) {
-                                SPText(item.name, SPType.Label, maxLines = 2)
-                                SPText("Série • ver temporadas e episódios", SPType.Caption, color = SPColors.TextSecondary)
-                                item.rating?.let { SPText("Nota: $it", SPType.Caption) }
+                    SPFocusIndicator(
+                        onClick = {
+                            if (account != null) scope.launch {
+                                loading = true
+                                try {
+                                    selectedSeries = item
+                                    episodes = api.seriesInfo(account, item.id)
+                                    selectedSeason = episodes.minOfOrNull { it.season } ?: 1
+                                    message = if (episodes.isEmpty()) "Nenhum episódio retornado pelo provedor." else ""
+                                } catch (e: Exception) {
+                                    selectedSeries = null
+                                    message = e.message ?: "Falha ao carregar episódios."
+                                } finally { loading = false }
                             }
+                        },
+                        modifier = Modifier.width(178.dp).fillMaxHeight(),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Column(Modifier.fillMaxSize()) {
+                            SPRemoteImage(item.cover, Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(10.dp)))
+                            Spacer(Modifier.height(7.dp))
+                            SPText(item.name, SPType.Label, color = Color.White, maxLines = 2)
+                            SPText("Série • temporadas e episódios", SPType.Caption, color = SPColors.TextSecondary, maxLines = 1)
                         }
                     }
                 }
             }
         }
+        if (message.isNotBlank() && !loading) SPText(message, SPType.Caption, color = SPColors.TextSecondary)
     }
 }
