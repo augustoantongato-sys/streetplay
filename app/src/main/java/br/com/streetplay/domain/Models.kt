@@ -26,6 +26,9 @@ data class ShortcutState(
     val installed: Boolean get() = resolvedPackage != null
 }
 
+/** Serviço de streaming disponível no catálogo TMDB para a região selecionada. */
+data class StreamingProvider(val id: Int, val name: String, val logoUrl: String?)
+
 /** Filme ou série em destaque (metadados e imagens do TMDB; nada é reproduzido por aqui). */
 data class TrendingItem(
     val id: Int,
