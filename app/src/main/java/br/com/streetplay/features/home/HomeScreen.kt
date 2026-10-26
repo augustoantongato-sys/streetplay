@@ -53,6 +53,8 @@ fun HomeScreen(
     onMoreApps: () -> Unit,
     onMoreStreaming: () -> Unit,
     onLive: () -> Unit,
+    onLibrary: () -> Unit,
+    onServices: () -> Unit,
     onAddApps: () -> Unit,
     onRemovePin: (String) -> Unit,
     onMovePin: (String, Int) -> Unit,
@@ -106,7 +108,16 @@ fun HomeScreen(
             }
         }
 
-        if (trending.isNotEmpty()) item { TrendingRow(trending) { detail = it } }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+                SPActionTile("Filmes e séries IPTV", SPIconKind.STREAMING, onLibrary, Modifier.weight(1f).height(70.dp))
+                SPActionTile("Catálogos Netflix e outros", SPIconKind.STREAMING, onServices, Modifier.weight(1f).height(70.dp))
+            }
+        }
+        val movies = trending.filter { it.type == "movie" }
+        val series = trending.filter { it.type == "tv" }
+        if (movies.isNotEmpty()) item { TrendingRow("Filmes populares", movies) { detail = it } }
+        if (series.isNotEmpty()) item { TrendingRow("Séries populares", series) { detail = it } }
         if (favorites.isNotEmpty()) item { AppsRow("Favoritos", favorites, onOpen) }
         if (recents.isNotEmpty()) item { AppsRow("Usados recentemente", recents, onOpen) }
 
@@ -166,9 +177,9 @@ private fun AppsRow(title: String, apps: List<InstalledApp>, onOpen: (String) ->
 }
 
 @Composable
-private fun TrendingRow(items: List<TrendingItem>, onClick: (TrendingItem) -> Unit) {
+private fun TrendingRow(title: String, items: List<TrendingItem>, onClick: (TrendingItem) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        SPText("Em alta agora", RowSectionTitle)
+        SPText(title, RowSectionTitle)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap), contentPadding = PaddingValues(vertical = 6.dp)) {
             items(items, key = { it.type + it.id }) { t ->
                 SPFocusIndicator(
