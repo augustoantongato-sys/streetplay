@@ -1,5 +1,6 @@
 package br.com.streetplay.navigation
 
+import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
