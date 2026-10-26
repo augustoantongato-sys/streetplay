@@ -34,9 +34,8 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
                 mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
             )
         }
-        val json = if (forceRefresh) runCatching { fetch().also { cache.write(key, it) } }.getOrElse { cache.readAny(key) }
-        else cache.cached(key, SIX_HOURS, fetch)
-        ?: return emptyList()
+        val json = (if (forceRefresh) runCatching { fetch().also { cache.write(key, it) } }.getOrElse { cache.readAny(key) }
+        else cache.cached(key, SIX_HOURS, fetch)) ?: return emptyList()
         return runCatching { TmdbParser.parseDiscover(json, type) }.getOrDefault(emptyList())
     }
 
