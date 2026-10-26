@@ -7,7 +7,9 @@ import br.com.streetplay.core.design.SPSidebarItem
 enum class Destination(val icon: SPIconKind, val label: String, val inMenu: Boolean = true) {
     HOME(SPIconKind.HOME, "Início"),
     APPS(SPIconKind.APPS, "Aplicativos"),
-    ENTERTAINMENT(SPIconKind.STREAMING, "Streaming"),
+    ENTERTAINMENT(SPIconKind.STREAMING, "Apps de streaming"),
+    SERVICES(SPIconKind.STREAMING, "Serviços"),
+    LIBRARY(SPIconKind.VIDEO, "Filmes e séries"),
     LIVE(SPIconKind.TV, "Canais ao vivo"),
     FAVORITES(SPIconKind.FAVORITES, "Favoritos", inMenu = false),
     STORE(SPIconKind.STORE, "Loja"),
