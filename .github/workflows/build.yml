@@ -1,38 +1,38 @@
 name: Build APK
 on:
   push:
+    branches:
+      - test-chatgpt-access-20261026-2
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
+concurrency:
+  group: streetplay-build
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
-        with: { distribution: temurin, java-version: 17 }
-      - name: Aceitar licenças do SDK
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: "8.9" }
-      - name: Testes e APK debug
+        with:
+          gradle-version: '8.9'
+      - name: Run tests and build debug APK
         env:
           ORG_GRADLE_PROJECT_TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
-        run: |
-          set +e
-          gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --continue --console=plain > build.log 2>&1
-          code=$?
-          grep -E "^e: |^w: .*(deprecat)|What went wrong|FAILED|error:" -A2 build.log | head -60 | awk '{printf "%s%%0A", $0}' | sed 's/^/::error title=Erros do build::/'; echo
-          exit $code
+        run: gradle --no-daemon --stacktrace --console=plain :app:testDebugUnitTest :app:assembleDebug
+      - name: Verify APK
+        run: test -s app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: StreetPlay-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-      - name: Publicar APK na Release
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk StreetPlay.apk
-          gh release delete v1.7.0 --yes --cleanup-tag || true
-          gh release create v1.7.0 StreetPlay.apk --title "STREET PLAY 1.7.0" --notes "APK debug instalável para Android TV."
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
