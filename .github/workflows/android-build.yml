@@ -1,6 +1,7 @@
 name: Android build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - test-chatgpt-access-20261026-2
@@ -24,6 +25,8 @@ jobs:
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Run unit tests
+        run: ./gradlew :app:testDebugUnitTest
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
       - name: Upload APK
