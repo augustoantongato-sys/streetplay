@@ -8,7 +8,7 @@ import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.domain.TrendingItem
 import java.io.File
 
-/** Fontes públicas: TMDB (destaques) e API completa do IPTV-org (canais). Funciona offline com o último cache salvo. */
+/** TMDB fornece destaques e metadados de disponibilidade por serviço; o catálogo IPTV vem da conta Xtream do usuário. */
 class CatalogRepository(context: Context, private val tmdbToken: String) {
     private val cache = DiskCache(File(context.cacheDir, "catalog"))
 
