@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.streetplay.core.storage.PrefsStore
 import br.com.streetplay.data.CatalogRepository
+import br.com.streetplay.core.storage.XtreamAccountStore
+import br.com.streetplay.data.remote.XtreamApi
 import br.com.streetplay.data.remote.LiveLabels
 import br.com.streetplay.data.remote.Networks
 import br.com.streetplay.data.remote.StreamChecker
@@ -33,7 +35,7 @@ import kotlinx.coroutines.sync.withPermit
 data class LiveFilters(val group: String = "c:BR", val query: String = "", val grouped: Boolean = true)
 
 /** Lista de canais no estilo IPTV: todos, favoritos, categorias e países, com busca. Nenhum canal é escondido. */
-class LiveViewModel(private val repo: CatalogRepository, private val prefs: PrefsStore) : ViewModel() {
+class LiveViewModel(private val repo: CatalogRepository, private val prefs: PrefsStore, private val accountStore: XtreamAccountStore, private val xtreamApi: XtreamApi) : ViewModel() {
     private val _all = MutableStateFlow<List<LiveChannel>>(emptyList())
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
@@ -60,13 +62,20 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
         if (f.query.isBlank()) base else base.filter { it.name.contains(f.query.trim(), ignoreCase = true) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    fun loadIfNeeded() { if (_all.value.isEmpty() && !_loading.value) reload() }
+    fun loadIfNeeded() { if (!_loading.value) reload() }
 
     fun reload() {
         viewModelScope.launch {
             _loading.value = true
-            _status.value = repo.loadStatus()
-            _all.value = repo.liveChannels { _progress.value = it }
+            _status.value = emptyMap()
+            _progress.value = "Conectando ao seu provedor IPTV…"
+            _all.value = try {
+                val account = accountStore.load()
+                if (account == null) emptyList() else xtreamApi.liveChannels(account)
+            } catch (e: Exception) {
+                _progress.value = e.message ?: "Não foi possível carregar os canais."
+                emptyList()
+            }
             _loading.value = false
             val g = _filters.value.group
             if (g != "fav" && filterGroup(_all.value, g, favorites.value).isEmpty()) _filters.update { it.copy(group = "all") }
