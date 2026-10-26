@@ -7,6 +7,7 @@ import android.os.StatFs
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import br.com.streetplay.core.common.openSystemScreen
 import br.com.streetplay.core.design.*
 import br.com.streetplay.core.storage.UserPrefs
@@ -34,6 +37,10 @@ fun SettingsScreen(
     onAnimations: (Boolean) -> Unit,
     onManageFavorites: () -> Unit,
     onAbout: () -> Unit,
+    iptvConnected: Boolean,
+    iptvMessage: String,
+    onSaveIptv: (String, String, String) -> Unit,
+    onDisconnectIptv: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -43,6 +50,7 @@ fun SettingsScreen(
     }
     val other = if (prefs.mode == AppMode.STREET) AppMode.LITE else AppMode.STREET
     var pickColor by remember { mutableStateOf(false) }
+    var showIptv by remember { mutableStateOf(false) }
 
     if (pickColor) ColorPicker(prefs.accent, onAccent) { pickColor = false }
 
@@ -62,6 +70,7 @@ fun SettingsScreen(
             SPSettingsItem("Cor principal", { pickColor = true }, subtitle = "Botões, destaques, seleções e bordas", value = prefs.accent.label)
         }
         item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, value = if (prefs.animations) "Ligadas" else "Desligadas") }
+        item { SPSettingsItem("Conta IPTV (Xtream Codes)", { showIptv = true }, subtitle = "Use os dados fornecidos pelo seu serviço IPTV", value = if (iptvConnected) "Conectada" else "Não configurada") }
         item { SPSettingsItem("Gerenciar favoritos", onManageFavorites) }
         item { SPSettingsItem("Aparelho", {}, value = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}") }
         item { SPSettingsItem("Versão do Android", {}, value = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})") }
@@ -73,6 +82,50 @@ fun SettingsScreen(
         item { SPSettingsItem("Bluetooth", { system(Settings.ACTION_BLUETOOTH_SETTINGS) }) }
         item { SPSettingsItem("Sobre", onAbout) }
     }
+    if (showIptv) IptvAccountDialog(
+        connected = iptvConnected, message = iptvMessage,
+        onSave = onSaveIptv, onDisconnect = onDisconnectIptv,
+        onDismiss = { showIptv = false },
+    )
+}
+
+@Composable
+private fun IptvAccountDialog(
+    connected: Boolean,
+    message: String,
+    onSave: (String, String, String) -> Unit,
+    onDisconnect: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var server by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    SPDialog("Conta IPTV", onDismiss) {
+        SPText("Informe o servidor, usuário e senha fornecidos pelo seu próprio provedor. Os dados ficam cifrados neste aparelho.", SPType.Body, color = SPColors.TextSecondary)
+        IptvInput(server, { server = it }, "Servidor (ex.: https://servidor.com)")
+        IptvInput(username, { username = it }, "Usuário")
+        IptvInput(password, { password = it }, "Senha", secret = true)
+        if (message.isNotBlank()) SPText(message, SPType.Caption, color = if (connected) Color(0xFF55CC88) else SPColors.TextSecondary)
+        SPButton("Testar e conectar") { onSave(server, username, password) }
+        if (connected) SPButton("Desconectar conta", onDisconnect)
+        SPButton("Fechar", onDismiss)
+    }
+}
+
+@Composable
+private fun IptvInput(value: String, onValue: (String) -> Unit, hint: String, secret: Boolean = false) {
+    BasicTextField(
+        value = value, onValueChange = onValue, singleLine = true,
+        textStyle = TextStyle(color = Color.White),
+        visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        modifier = Modifier.fillMaxWidth().background(Color(0xFF202020), RoundedCornerShape(9.dp)).padding(12.dp),
+        decorationBox = { inner ->
+            Box {
+                if (value.isEmpty()) SPText(hint, SPType.Caption, color = SPColors.TextSecondary)
+                inner()
+            }
+        },
+    )
 }
 
 @Composable
