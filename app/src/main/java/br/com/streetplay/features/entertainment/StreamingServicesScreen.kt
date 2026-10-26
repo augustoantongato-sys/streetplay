@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.*
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.streetplay.StreetPlayApp
@@ -12,20 +14,30 @@ import br.com.streetplay.domain.StreamingProvider
 import br.com.streetplay.domain.TrendingItem
 import kotlinx.coroutines.launch
 
+private data class ServiceLink(val label: String, val aliases: List<String>, val url: String)
 private val preferredServices = listOf(
-    "Netflix" to listOf("netflix"),
-    "Prime Video" to listOf("prime video", "amazon prime"),
-    "Disney+" to listOf("disney"),
-    "Max" to listOf("hbo max"),
-    "Apple TV+" to listOf("apple tv"),
-    "Globoplay" to listOf("globoplay"),
-    "Paramount+" to listOf("paramount+", "paramount plus"),
+    ServiceLink("Netflix", listOf("netflix"), "https://www.netflix.com/br/"),
+    ServiceLink("Prime Video", listOf("prime video", "amazon prime"), "https://www.primevideo.com/"),
+    ServiceLink("Disney+", listOf("disney"), "https://www.disneyplus.com/pt-br"),
+    ServiceLink("Max", listOf("hbo max", "max"), "https://www.max.com/br/pt"),
+    ServiceLink("Apple TV+", listOf("apple tv"), "https://tv.apple.com/br"),
+    ServiceLink("Globoplay", listOf("globoplay"), "https://globoplay.globo.com/"),
+    ServiceLink("Paramount+", listOf("paramount+", "paramount plus"), "https://www.paramountplus.com/br/"),
 )
 
 private fun curatedProviders(all: List<StreamingProvider>): List<StreamingProvider> =
-    preferredServices.mapNotNull { (_, aliases) ->
-        all.firstOrNull { p -> aliases.any { alias -> p.name.contains(alias, ignoreCase = true) } }
+    preferredServices.mapNotNull { service ->
+        all.firstOrNull { p ->
+            if (service.label == "Max") p.name.equals("Max", true) || p.name.contains("HBO Max", true)
+            else service.aliases.any { alias -> p.name.contains(alias, ignoreCase = true) }
+        }
     }.distinctBy { it.id }
+
+private fun officialServiceUrl(provider: StreamingProvider): String =
+    preferredServices.firstOrNull { service ->
+        service.aliases.any { provider.name.contains(it, ignoreCase = true) } ||
+            (service.label == "Max" && provider.name.equals("Max", true))
+    }?.url ?: "https://www.google.com/search?q=" + Uri.encode(provider.name + " oficial Brasil")
 
 @Composable
 fun StreamingServicesScreen(modifier: Modifier = Modifier) {
@@ -79,8 +91,8 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
     }
 
     Column(modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
-        SPSectionTitle("Serviços de streaming")
-        SPText("Serviços e títulos consultados dinamicamente no TMDB para o Brasil. O TMDB fornece metadados e disponibilidade, não o vídeo para reprodução.", SPType.Caption, color = SPColors.TextSecondary)
+        SPSectionTitle("Plataformas")
+        SPText("Toque em uma logo para abrir a plataforma oficial. Os títulos abaixo são os que o catálogo indica como disponíveis por assinatura no Brasil.", SPType.Caption, color = SPColors.TextSecondary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 12.dp)) {
             SPButton(if (type == "movie") "Filmes •" else "Filmes") { type = "movie" }
             SPButton(if (type == "tv") "Séries •" else "Séries") { type = "tv" }
@@ -91,13 +103,17 @@ fun StreamingServicesScreen(modifier: Modifier = Modifier) {
                 item { SPText("Escolha um serviço", SPType.Label) }
                 items(providers, key = { it.id }) { provider ->
                     SPFocusIndicator(
-                        onClick = { selectedProvider = provider },
+                        onClick = {
+                            selectedProvider = provider
+                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(officialServiceUrl(provider)))) }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
                     ) {
                         Row(Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            SPRemoteImage(provider.logoUrl, Modifier.size(32.dp))
+                            SPRemoteImage(provider.logoUrl, Modifier.size(52.dp).padding(4.dp))
                             SPText(provider.name, SPType.Label, Modifier.weight(1f))
+                            SPText("Abrir", SPType.Caption, color = LocalAccent.current)
                             if (provider.id == selectedProvider?.id) SPText("Selecionado", SPType.Caption, color = LocalAccent.current)
                         }
                     }
