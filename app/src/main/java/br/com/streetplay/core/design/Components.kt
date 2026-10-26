@@ -40,6 +40,7 @@ import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import br.com.streetplay.R
+import br.com.streetplay.core.common.LocalBannerLoader
 import br.com.streetplay.core.common.LocalIconLoader
 import br.com.streetplay.core.common.networkLabel
 import kotlinx.coroutines.delay
