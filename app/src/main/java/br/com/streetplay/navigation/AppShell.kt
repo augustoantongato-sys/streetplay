@@ -14,6 +14,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import br.com.streetplay.core.common.openUrl
@@ -217,7 +220,7 @@ private fun StreetPlayHomeScreen(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp),
                     container = if (index == 0) Brush.verticalGradient(listOf(Color(0xFFFF8A24), Color(0xFFB83A00))) else Brush.verticalGradient(listOf(Color(0xFF25201D), Color(0xFF0E0D0C))),
-                    focusedContainer = Brush.verticalGradient(listOf(Color(0xFFFF9A36), Color(0xFFC64A08))),
+                    focusedContainer = Color(0xFFE65A0A),
                     focusScale = 1.035f,
                 ) {
                     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
