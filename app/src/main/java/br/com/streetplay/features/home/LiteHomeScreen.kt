@@ -43,7 +43,7 @@ fun LiteTopBar(selected: Destination, onSelect: (Destination) -> Unit, modifier:
     val time = remember(now) { SimpleDateFormat("HH:mm", Locale("pt", "BR")).format(now) }
     val tabs = listOf(
         Destination.HOME to "Início", Destination.APPS to "Apps", Destination.LIVE to "TV ao vivo",
-        Destination.FAVORITES to "Favoritos", Destination.STORE to "Loja", Destination.SETTINGS to "Ajustes",
+        Destination.LIBRARY to "Filmes e séries", Destination.SERVICES to "Streaming", Destination.STORE to "Loja", Destination.SETTINGS to "Ajustes",
     )
     Row(modifier.fillMaxWidth().height(84.dp).padding(horizontal = 56.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(200.dp)) { SPText("Street Play", TextStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Color.White)) }
@@ -78,6 +78,8 @@ fun LiteHomeScreen(
     onOpen: (String) -> Unit,
     onOpenStoreListing: (String) -> Unit,
     onLive: () -> Unit,
+    onLibrary: () -> Unit,
+    onServices: () -> Unit,
     onAddApps: () -> Unit,
     onRemovePin: (String) -> Unit,
     onMovePin: (String, Int) -> Unit,
@@ -106,6 +108,8 @@ fun LiteHomeScreen(
                 }
                 item { LiteIconTile("Adicionar", SPIconKind.PLUS, onAddApps) }
                 item { LiteIconTile("Canais", SPIconKind.TV, onLive) }
+                item { LiteIconTile("Filmes e séries", SPIconKind.STREAMING, onLibrary) }
+                item { LiteIconTile("Serviços", SPIconKind.STREAMING, onServices) }
             }
         }
         if (trending.isNotEmpty()) item {

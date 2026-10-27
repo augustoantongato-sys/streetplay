@@ -6,12 +6,16 @@ import br.com.streetplay.core.design.SPSidebarItem
 /** inMenu = aparece no menu lateral; as demais são telas internas. */
 enum class Destination(val icon: SPIconKind, val label: String, val inMenu: Boolean = true) {
     HOME(SPIconKind.HOME, "Início"),
-    APPS(SPIconKind.APPS, "Aplicativos"),
-    ENTERTAINMENT(SPIconKind.STREAMING, "Streaming"),
-    LIVE(SPIconKind.TV, "Canais ao vivo"),
-    FAVORITES(SPIconKind.FAVORITES, "Favoritos"),
-    STORE(SPIconKind.STORE, "Loja"),
-    SETTINGS(SPIconKind.SETTINGS, "Configurações"),
+    APPS(SPIconKind.APPS, "Aplicativos", inMenu = false),
+    ENTERTAINMENT(SPIconKind.STREAMING, "Apps de streaming", inMenu = false),
+    SERVICES(SPIconKind.STREAMING, "Serviços", inMenu = false),
+    LIBRARY(SPIconKind.STREAMING, "Filmes e séries", inMenu = false),
+    MOVIES(SPIconKind.STREAMING, "Filmes", inMenu = false),
+    SERIES(SPIconKind.STREAMING, "Séries", inMenu = false),
+    LIVE(SPIconKind.TV, "Canais ao vivo", inMenu = false),
+    FAVORITES(SPIconKind.FAVORITES, "Favoritos", inMenu = false),
+    STORE(SPIconKind.STORE, "Loja", inMenu = false),
+    SETTINGS(SPIconKind.SETTINGS, "Configurações", inMenu = false),
     ABOUT(SPIconKind.INFO, "Sobre"),
     ADD_APPS(SPIconKind.PLUS, "Adicionar apps", inMenu = false);
 

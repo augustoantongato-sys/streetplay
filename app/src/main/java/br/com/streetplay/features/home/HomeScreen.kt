@@ -53,6 +53,8 @@ fun HomeScreen(
     onMoreApps: () -> Unit,
     onMoreStreaming: () -> Unit,
     onLive: () -> Unit,
+    onLibrary: () -> Unit,
+    onServices: () -> Unit,
     onAddApps: () -> Unit,
     onRemovePin: (String) -> Unit,
     onMovePin: (String, Int) -> Unit,
@@ -71,42 +73,23 @@ fun HomeScreen(
 
     LazyColumn(
         modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 26.dp, end = 23.dp, top = 2.dp, bottom = 18.dp),
+        contentPadding = PaddingValues(start = 26.dp, end = 23.dp, top = 18.dp, bottom = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { HomeBanner(trending, onStart = onMoreStreaming, onDetails = { detail = it }) }
-
+        item { HomeBanner(trending = trending, onStart = onServices, onDetails = { detail = it }) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SPText("Aplicativos", RowSectionTitle)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap), contentPadding = PaddingValues(vertical = 6.dp)) {
-                    itemsIndexed(entries, key = { _, e -> e.id }) { i, e ->
-                        SPTile(
-                            label = e.label, packageName = e.packageName, installed = e.installed, brand = Color(e.brandColor),
-                            onClick = { val pkg = e.packageName; if (e.installed && pkg != null) onOpen(pkg) else missingEntry = e },
-                            onLongClick = { menuEntry = e },
-                            modifier = Modifier.width(133.dp).height(75.dp).then(if (i == 0) Modifier.focusRequester(firstTile) else Modifier),
-                        )
-                    }
-                    item { SPActionTile("Adicionar", SPIconKind.PLUS, onAddApps, Modifier.width(100.dp).height(75.dp)) }
-                    item { SPActionTile("Mais Apps", SPIconKind.DOTS, onMoreApps, Modifier.width(100.dp).height(75.dp)) }
-                }
+                SPText("PLATAFORMAS PARA ASSISTIR", RowSectionTitle)
+                SPText("Escolha uma plataforma para ver filmes e séries disponíveis no Brasil.", SPType.Caption, color = SPColors.TextSecondary)
+                SPActionTile("Ver plataformas e catálogos", SPIconKind.STREAMING, onServices, Modifier.fillMaxWidth().height(76.dp))
             }
         }
-
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SPText("Streaming", RowSectionTitle)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-                    listOf("netflix", "prime", "disney", "globoplay", "hbomax", "youtube").mapNotNull { byId[it] }.forEach { s ->
-                        ShortcutTile(s, onOpen, { missing = s }, Modifier.weight(1f).height(70.dp))
-                    }
-                    SPActionTile("Canais ao Vivo", SPIconKind.TV, onLive, Modifier.weight(1f).height(70.dp))
-                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+                SPActionTile("Canais ao vivo", SPIconKind.TV, onLive, Modifier.weight(1f).height(70.dp))
+                SPActionTile("Filmes e séries IPTV", SPIconKind.STREAMING, onLibrary, Modifier.weight(1f).height(70.dp))
             }
         }
-
-        if (trending.isNotEmpty()) item { TrendingRow(trending) { detail = it } }
         if (favorites.isNotEmpty()) item { AppsRow("Favoritos", favorites, onOpen) }
         if (recents.isNotEmpty()) item { AppsRow("Usados recentemente", recents, onOpen) }
 
@@ -166,9 +149,9 @@ private fun AppsRow(title: String, apps: List<InstalledApp>, onOpen: (String) ->
 }
 
 @Composable
-private fun TrendingRow(items: List<TrendingItem>, onClick: (TrendingItem) -> Unit) {
+private fun TrendingRow(title: String, items: List<TrendingItem>, onClick: (TrendingItem) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        SPText("Em alta agora", RowSectionTitle)
+        SPText(title, RowSectionTitle)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Gap), contentPadding = PaddingValues(vertical = 6.dp)) {
             items(items, key = { it.type + it.id }) { t ->
                 SPFocusIndicator(

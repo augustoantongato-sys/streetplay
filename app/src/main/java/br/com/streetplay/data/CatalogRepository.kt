@@ -3,18 +3,13 @@ package br.com.streetplay.data
 import android.content.Context
 import br.com.streetplay.data.remote.DiskCache
 import br.com.streetplay.data.remote.Http
-import br.com.streetplay.data.remote.IptvApi
-import br.com.streetplay.data.remote.LiveIndexBuilder
-import br.com.streetplay.data.remote.LiveIndexCodec
 import br.com.streetplay.data.remote.TmdbParser
 import br.com.streetplay.domain.LiveChannel
 import br.com.streetplay.domain.TrendingItem
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import br.com.streetplay.domain.StreamingProvider
 import java.io.File
 
-/** Fontes públicas: TMDB (destaques) e API completa do IPTV-org (canais). Funciona offline com o último cache salvo. */
+/** TMDB fornece destaques e metadados de disponibilidade por serviço; o catálogo IPTV vem da conta Xtream do usuário. */
 class CatalogRepository(context: Context, private val tmdbToken: String) {
     private val cache = DiskCache(File(context.cacheDir, "catalog"))
 
@@ -29,29 +24,37 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         return runCatching { TmdbParser.parseTrending(json) }.getOrDefault(emptyList())
     }
 
-    /** Lista completa de canais. Baixa e organiza uma vez por dia; depois abre na hora. */
-    suspend fun liveChannels(onProgress: (String) -> Unit): List<LiveChannel> = withContext(Dispatchers.Default) {
-        cache.readFresh(INDEX_KEY, ONE_DAY)?.let { return@withContext LiveIndexCodec.decode(it) }
-        try {
-            onProgress("Baixando a lista de canais (1/5)…")
-            val streams = IptvApi.streams()
-            onProgress("Baixando a lista de canais (2/5)…")
-            val withStreams = streams.mapTo(HashSet()) { it.channel }
-            val blocked = IptvApi.blocklist()
-            val channels = IptvApi.channels(withStreams)
-            onProgress("Baixando logos (3/5)…")
-            val logos = IptvApi.logos(channels.mapTo(HashSet()) { it.id })
-            onProgress("Baixando a segunda fonte (4/5)…")
-            val extra = try { IptvApi.freeTv() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
-            onProgress("Organizando (5/5)…")
-            val list = LiveIndexBuilder.merge(LiveIndexBuilder.build(streams, channels, logos, blocked), extra, blocked)
-            if (list.isNotEmpty()) cache.write(INDEX_KEY, LiveIndexCodec.encode(list))
-            list
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            cache.readAny(INDEX_KEY)?.let { LiveIndexCodec.decode(it) } ?: emptyList()
+    /** Lista dinâmica de serviços de streaming que o TMDB informa para o Brasil. */
+    suspend fun watchProviders(type: String = "movie", forceRefresh: Boolean = false): List<StreamingProvider> {
+        if (tmdbToken.isBlank()) return emptyList()
+        require(type == "movie" || type == "tv")
+        val key = "watch_providers_br_$type"
+        val fetch: suspend () -> String = {
+            Http.get(
+                "https://api.themoviedb.org/3/watch/providers/$type?watch_region=BR&language=pt-BR",
+                mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
+            )
         }
+        val json = (if (forceRefresh) {
+            try { fetch().also { cache.write(key, it) } } catch (_: Exception) { cache.readAny(key) }
+        } else cache.cached(key, SIX_HOURS, fetch)) ?: return emptyList()
+        return runCatching { TmdbParser.parseWatchProviders(json) }.getOrDefault(emptyList())
+    }
+
+    /** Títulos que o TMDB associa a um serviço disponível no Brasil. Metadados apenas; reprodução depende do app oficial ou do IPTV do usuário. */
+    suspend fun providerTitles(providerId: Int, type: String, forceRefresh: Boolean = false): List<TrendingItem> {
+        if (tmdbToken.isBlank()) return emptyList()
+        require(type == "movie" || type == "tv")
+        val key = "provider_${providerId}_${type}"
+        val fetch: suspend () -> String = {
+            Http.get(
+                "https://api.themoviedb.org/3/discover/$type?language=pt-BR&watch_region=BR&with_watch_providers=$providerId&with_watch_monetization_types=flatrate&sort_by=popularity.desc&page=1",
+                mapOf("Authorization" to "Bearer $tmdbToken", "accept" to "application/json"),
+            )
+        }
+        val json = (if (forceRefresh) runCatching { fetch().also { cache.write(key, it) } }.getOrElse { cache.readAny(key) }
+        else cache.cached(key, SIX_HOURS, fetch)) ?: return emptyList()
+        return runCatching { TmdbParser.parseDiscover(json, type) }.getOrDefault(emptyList())
     }
 
     /** Resultado da última checagem de canais (válido por 2 h): url -> no ar? */
@@ -64,9 +67,7 @@ class CatalogRepository(context: Context, private val tmdbToken: String) {
         cache.write("status_all", status.entries.joinToString("\n") { (if (it.value) "1|" else "0|") + it.key })
 
     private companion object {
-        const val INDEX_KEY = "live_index_v5"
         const val SIX_HOURS = 6 * 60 * 60 * 1000L
         const val TWO_HOURS = 2 * 60 * 60 * 1000L
-        const val ONE_DAY = 24 * 60 * 60 * 1000L
     }
 }

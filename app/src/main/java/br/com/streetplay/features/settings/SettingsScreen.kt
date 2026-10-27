@@ -7,18 +7,26 @@ import android.os.StatFs
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import br.com.streetplay.core.common.openSystemScreen
 import br.com.streetplay.core.design.*
 import br.com.streetplay.core.storage.UserPrefs
@@ -34,7 +42,12 @@ fun SettingsScreen(
     onAnimations: (Boolean) -> Unit,
     onManageFavorites: () -> Unit,
     onAbout: () -> Unit,
+    iptvConnected: Boolean,
+    iptvMessage: String,
+    onSaveIptv: (String, String, String) -> Unit,
+    onDisconnectIptv: () -> Unit,
     modifier: Modifier = Modifier,
+    forceIptvLogin: Boolean = false,
 ) {
     val context = LocalContext.current
     val lite = LocalLite.current
@@ -43,6 +56,12 @@ fun SettingsScreen(
     }
     val other = if (prefs.mode == AppMode.STREET) AppMode.LITE else AppMode.STREET
     var pickColor by remember { mutableStateOf(false) }
+    var showIptv by remember { mutableStateOf(forceIptvLogin) }
+
+    if (forceIptvLogin) {
+        FullScreenIptvLogin(message = iptvMessage, onSave = onSaveIptv)
+        return
+    }
 
     if (pickColor) ColorPicker(prefs.accent, onAccent) { pickColor = false }
 
@@ -62,6 +81,7 @@ fun SettingsScreen(
             SPSettingsItem("Cor principal", { pickColor = true }, subtitle = "Botões, destaques, seleções e bordas", value = prefs.accent.label)
         }
         item { SPSettingsItem("Animações", { onAnimations(!prefs.animations) }, value = if (prefs.animations) "Ligadas" else "Desligadas") }
+        item { SPSettingsItem("Conta IPTV (Xtream Codes)", { showIptv = true }, subtitle = "Use os dados fornecidos pelo seu serviço IPTV", value = if (iptvConnected) "Conectada" else "Não configurada") }
         item { SPSettingsItem("Gerenciar favoritos", onManageFavorites) }
         item { SPSettingsItem("Aparelho", {}, value = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}") }
         item { SPSettingsItem("Versão do Android", {}, value = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})") }
@@ -73,6 +93,50 @@ fun SettingsScreen(
         item { SPSettingsItem("Bluetooth", { system(Settings.ACTION_BLUETOOTH_SETTINGS) }) }
         item { SPSettingsItem("Sobre", onAbout) }
     }
+    if (showIptv) IptvAccountDialog(
+        connected = iptvConnected, message = iptvMessage,
+        onSave = onSaveIptv, onDisconnect = onDisconnectIptv,
+        onDismiss = { if (!forceIptvLogin) showIptv = false },
+    )
+}
+
+@Composable
+private fun IptvAccountDialog(
+    connected: Boolean,
+    message: String,
+    onSave: (String, String, String) -> Unit,
+    onDisconnect: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var server by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    SPDialog("Conta IPTV", onDismiss) {
+        SPText("Informe o servidor, usuário e senha fornecidos pelo seu próprio provedor. Os dados ficam cifrados neste aparelho. Prefira HTTPS: em servidores HTTP, os dados trafegam sem criptografia pela rede.", SPType.Body, color = SPColors.TextSecondary)
+        IptvInput(server, { server = it }, "Servidor (ex.: https://servidor.com)")
+        IptvInput(username, { username = it }, "Usuário")
+        IptvInput(password, { password = it }, "Senha", secret = true)
+        if (message.isNotBlank()) SPText(message, SPType.Caption, color = if (connected) Color(0xFF55CC88) else SPColors.TextSecondary)
+        SPButton("Testar e conectar", onClick = { onSave(server, username, password) })
+        if (connected) SPButton("Desconectar conta", onDisconnect)
+        SPButton("Fechar", onDismiss)
+    }
+}
+
+@Composable
+private fun IptvInput(value: String, onValue: (String) -> Unit, hint: String, secret: Boolean = false) {
+    BasicTextField(
+        value = value, onValueChange = onValue, singleLine = true,
+        textStyle = TextStyle(color = Color.White),
+        visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        modifier = Modifier.fillMaxWidth().background(Color(0xFF202020), RoundedCornerShape(9.dp)).padding(12.dp),
+        decorationBox = { inner ->
+            Box {
+                if (value.isEmpty()) SPText(hint, SPType.Caption, color = SPColors.TextSecondary)
+                inner()
+            }
+        },
+    )
 }
 
 @Composable
@@ -99,3 +163,78 @@ private fun freeStorage(): String = runCatching {
     val bytes = StatFs(Environment.getDataDirectory().path).availableBytes
     String.format(Locale("pt", "BR"), "%.1f GB livres", bytes / 1_000_000_000.0)
 }.getOrDefault("Indisponível")
+
+@Composable
+private fun FullScreenIptvLogin(message: String, onSave: (String, String, String) -> Unit) {
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var server by remember { mutableStateOf("") }
+    val orange = Color(0xFFFF7417)
+    BoxWithConstraints(
+        Modifier.fillMaxSize().background(Color(0xFF050505)),
+    ) {
+        val compact = maxWidth < 420.dp
+        val horizontal = if (compact) 18.dp else 36.dp
+        Column(
+            Modifier.fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = horizontal, vertical = if (compact) 22.dp else 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Column(
+                Modifier.fillMaxWidth().widthIn(max = 620.dp)
+                    .background(Color(0xFF11100F), RoundedCornerShape(if (compact) 24.dp else 30.dp))
+                    .padding(horizontal = if (compact) 22.dp else 42.dp, vertical = if (compact) 26.dp else 34.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(if (compact) 14.dp else 18.dp),
+            ) {
+                Box(
+                    Modifier.size(if (compact) 66.dp else 82.dp)
+                        .background(
+                            Brush.linearGradient(listOf(Color(0xFFFF8A28), Color(0xFFE94B00))),
+                            RoundedCornerShape(if (compact) 20.dp else 24.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SPText("▶", TextStyle(fontSize = if (compact) 34.sp else 42.sp, fontWeight = FontWeight.Black, color = Color.White))
+                }
+                SPText("STREET PLAY", TextStyle(fontSize = if (compact) 30.sp else 42.sp, fontWeight = FontWeight.Black, color = Color.White))
+                SPText("ENTRETENIMENTO EM UM SÓ LUGAR", TextStyle(fontSize = if (compact) 9.sp else 11.sp, fontWeight = FontWeight.Bold, color = orange))
+                Spacer(Modifier.height(2.dp))
+                SPText("Entre com os dados da sua conta IPTV", SPType.Body, color = Color(0xFFB9B3AE))
+                FullScreenLoginField(username, { username = it }, "Usuário")
+                FullScreenLoginField(password, { password = it }, "Senha", secret = true)
+                FullScreenLoginField(server, { server = it }, "Servidor (http:// ou https://)")
+                if (message.isNotBlank()) SPText(message, SPType.Caption, color = Color(0xFFFFB28A))
+                SPButton("ENTRAR", onClick = { onSave(server.trim(), username.trim(), password) }, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun FullScreenLoginField(
+    value: String,
+    onValue: (String) -> Unit,
+    hint: String,
+    secret: Boolean = false,
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValue,
+        singleLine = true,
+        textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
+        visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        modifier = Modifier.fillMaxWidth()
+            .background(Color(0xFF202020), RoundedCornerShape(13.dp))
+            .padding(horizontal = 16.dp, vertical = 15.dp),
+        decorationBox = { inner ->
+            Box {
+                if (value.isEmpty()) SPText(hint, SPType.Body, color = Color(0xFF888888))
+                inner()
+            }
+        },
+    )
+}

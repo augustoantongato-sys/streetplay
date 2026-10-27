@@ -32,7 +32,7 @@ object LiveIndexBuilder {
                 val list = ranked[c.id] ?: return@mapNotNull null
                 val s = list.first()
                 LiveChannel(
-                    id = c.id, name = c.name, logo = bestLogo[c.id], country = c.country,
+                    id = c.id, name = cleanDisplayName(c.name), logo = bestLogo[c.id], country = c.country,
                     categories = c.categories.ifEmpty { listOf("undefined") },
                     url = s.url, userAgent = s.userAgent, referrer = s.referrer, quality = s.quality, labels = s.labels,
                     alternates = list.drop(1).map { StreamOption(it.url, it.userAgent, it.referrer) },
@@ -64,7 +64,7 @@ object LiveIndexBuilder {
                 val id = e.id.ifBlank { "ftv:" + key(e.name, e.country) }
                 if (updated.containsKey(id)) continue
                 updated[id] = LiveChannel(
-                    id = id, name = e.name, logo = e.logo, country = e.country,
+                    id = id, name = cleanDisplayName(e.name), logo = e.logo, country = e.country,
                     categories = if (e.group.equals("News", true)) listOf("news") else listOf("undefined"), url = e.url,
                 )
                 keyToId.putIfAbsent(key(e.name, e.country), id)
@@ -74,6 +74,9 @@ object LiveIndexBuilder {
     }
 
     private fun key(name: String, country: String) = sortKey(name) + "|" + country
+
+    /** Ajusta apenas espaços repetidos, sem remover acentos ou alterar a grafia original. */
+    private fun cleanDisplayName(value: String): String = value.replace(Regex("\\s+"), " ").trim()
 
     /** Ordem alfabética sem acentos ("Éxito" fica junto do E). */
     fun sortKey(name: String): String =
