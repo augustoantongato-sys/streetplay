@@ -64,7 +64,8 @@ fun LiveScreen(
     }
     val main = groups.filter { it.kind == GroupKind.ALL || it.kind == GroupKind.FAVORITES || it.id == "c:BR" }
     val brazil = groups.filter { it.kind == GroupKind.BRAZIL }
-    val cats = groups.filter { it.kind == GroupKind.CATEGORY && it.id != "adult:18" }
+    val streaming = groups.filter { it.id == "streaming:services" }
+    val cats = groups.filter { it.kind == GroupKind.CATEGORY && it.id != "adult:18" && it.id != "streaming:services" }
     val countries = groups.filter { it.kind == GroupKind.COUNTRY && it.id != "c:BR" }
     val adult = groups.filter { it.id == "adult:18" }
 
@@ -99,9 +100,10 @@ fun LiveScreen(
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth < 600.dp) {
             Column(Modifier.fillMaxSize().padding(horizontal = 14.dp).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LiveChannelsBanner(Modifier.fillMaxWidth())
                 SPSearchField(filters.query, onQuery, "Buscar canal ou emissora", Modifier.fillMaxWidth())
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
-                    val allGroups = main + brazil + cats + countries + adult
+                    val allGroups = main + brazil + streaming + cats + countries + adult
                     items(allGroups, key = { it.id }) { group ->
                         SPFocusIndicator(
                             onClick = { onSelectGroup(group.id) },
@@ -149,6 +151,10 @@ fun LiveScreen(
                 items(main, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
                 if (brazil.isNotEmpty()) item { GroupHeader("Brasil") }
                 items(brazil, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                if (streaming.isNotEmpty()) {
+                    item { GroupHeader("Streaming") }
+                    items(streaming, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                }
                 item { GroupHeader("Categorias") }
                 items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
                 item { GroupHeader("Países") }
@@ -160,6 +166,7 @@ fun LiveScreen(
             }
     
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LiveChannelsBanner(Modifier.fillMaxWidth())
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SPSearchField(filters.query, onQuery, "Buscar canal ou emissora", Modifier.weight(1f))
                     SPButton(if (filters.grouped) "Ver em lista" else "Ver por emissora", onToggleGrouped)
@@ -307,6 +314,36 @@ private fun ChannelRow(number: Int?, ch: LiveChannel, alive: Boolean?, fav: Bool
             else if (ch.external) SPText(if (ch.url.contains("twitch", true)) "Twitch" else "YouTube", SPType.Caption, Modifier.padding(start = 8.dp))
             else if (!lite && ch.quality != null) SPText(ch.quality, SPType.Caption, Modifier.padding(start = 8.dp))
             if (fav) { Spacer(Modifier.width(10.dp)); SPIcon(SPIconKind.FAVORITES, tint = accent, size = 16.dp) }
+        }
+    }
+}
+
+
+@Composable
+private fun LiveChannelsBanner(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .height(88.dp)
+            .background(
+                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(Color(0xFFFF8A00), Color(0xFFFF5A00), Color(0xFFD83B00))
+                ),
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            Modifier.size(52.dp).background(Color.White.copy(alpha = 0.18f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            SPText("▶", TextStyle(fontSize = 23.sp, fontWeight = FontWeight.Black, color = Color.White))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            SPText("STREET PLAY", SPType.Label, color = Color.White, maxLines = 1)
+            SPText("CANAIS AO VIVO", SPType.Title, color = Color.White, maxLines = 1)
+            SPText("Sua programação em tempo real", SPType.Caption, color = Color.White.copy(alpha = 0.9f), maxLines = 1)
         }
     }
 }
