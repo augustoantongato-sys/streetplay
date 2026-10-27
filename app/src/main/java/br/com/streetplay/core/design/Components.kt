@@ -1,6 +1,10 @@
 package br.com.streetplay.core.design
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -62,7 +67,6 @@ fun SPText(
 )
 
 /** Base de todo elemento focável: foco sempre visível (borda na cor de destaque + escala). */
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SPFocusIndicator(
     onClick: () -> Unit,
@@ -77,21 +81,22 @@ fun SPFocusIndicator(
 ) {
     val accent = LocalAccent.current
     val scale = if (LocalAnimations.current) focusScale else 1f
-    Surface(
-        onClick = onClick,
-        onLongClick = onLongClick,
-        modifier = modifier,
-        shape = ClickableSurfaceDefaults.shape(shape = shape, focusedShape = shape, pressedShape = shape),
-        colors = ClickableSurfaceDefaults.colors(
-            containerColor = container, contentColor = SPColors.TextPrimary,
-            focusedContainerColor = focusedContainer, focusedContentColor = SPColors.TextPrimary,
-            pressedContainerColor = focusedContainer, pressedContentColor = SPColors.TextPrimary,
-        ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = scale),
-        border = ClickableSurfaceDefaults.border(
-            border = if (idleBorder != null) Border(BorderStroke(1.dp, idleBorder), shape = shape) else Border.None,
-            focusedBorder = Border(BorderStroke(3.dp, accent), shape = shape),
-        ),
+    var focused by remember { mutableStateOf(false) }
+    val outline = if (focused) BorderStroke(3.dp, accent)
+        else idleBorder?.let { BorderStroke(1.dp, it) }
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                val factor = if (focused) scale else 1f
+                scaleX = factor
+                scaleY = factor
+            }
+            .clip(shape)
+            .background(if (focused) focusedContainer else container, shape)
+            .then(if (outline != null) Modifier.border(outline, shape) else Modifier)
+            .onFocusChanged { focused = it.isFocused }
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .focusable(),
         content = content,
     )
 }
