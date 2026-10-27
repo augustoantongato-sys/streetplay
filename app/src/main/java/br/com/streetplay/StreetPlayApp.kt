@@ -16,7 +16,7 @@ class AppContainer(context: Context) {
     val repository = AppRepository(context, db)
     val prefs = PrefsStore(context)
     val xtreamAccountStore = XtreamAccountStore(context)
-    val xtreamApi = XtreamApi()
+    val xtreamApi = XtreamApi(context)
     val catalog = CatalogRepository(context, BuildConfig.TMDB_TOKEN)
     val imageLoader = RemoteImageLoader(context)
 }
