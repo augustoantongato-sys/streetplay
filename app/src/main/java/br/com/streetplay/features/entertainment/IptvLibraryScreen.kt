@@ -138,7 +138,7 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifi
                         if (account != null) scope.launch {
                             loading = true
                             try {
-                                val detail = api.movieInfo(account, movie.id)
+                                val detail = runCatching { api.movieInfo(account, movie.id) }.getOrNull()
                                 val url = api.playbackUrl(account, "movie", movie.id, detail?.extension ?: movie.extension)
                                 onPlay(LiveChannel("xtream-movie:${movie.id}", movie.name, detail?.poster ?: movie.poster, "BR", listOf("movies"), url))
                             } catch (e: Exception) { message = e.message ?: "Falha ao abrir filme." }
