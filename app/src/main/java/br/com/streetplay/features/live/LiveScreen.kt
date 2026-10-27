@@ -63,8 +63,9 @@ fun LiveScreen(
     }
     val main = groups.filter { it.kind == GroupKind.ALL || it.kind == GroupKind.FAVORITES || it.id == "c:BR" }
     val brazil = groups.filter { it.kind == GroupKind.BRAZIL }
-    val cats = groups.filter { it.kind == GroupKind.CATEGORY }
+    val cats = groups.filter { it.kind == GroupKind.CATEGORY && it.id != "adult:18" }
     val countries = groups.filter { it.kind == GroupKind.COUNTRY && it.id != "c:BR" }
+    val adult = groups.filter { it.id == "adult:18" }
 
     val nets = remember(channels, filters.grouped) { if (filters.grouped) Networks.group(channels) else emptyList() }
     var expanded by remember(filters.group) { mutableStateOf(emptySet<String>()) }
@@ -107,6 +108,10 @@ fun LiveScreen(
             items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
             item { GroupHeader("Países") }
             items(countries, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+            if (adult.isNotEmpty()) {
+                item { GroupHeader("Conteúdo adulto") }
+                items(adult, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+            }
         }
 
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
