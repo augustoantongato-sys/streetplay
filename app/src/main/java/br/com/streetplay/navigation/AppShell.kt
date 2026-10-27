@@ -99,19 +99,22 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
         } else when (dest) {
             Destination.HOME -> StreetPlayHomeScreen(
                 onLive = { dest = Destination.LIVE },
-                onLibrary = { dest = Destination.LIBRARY },
+                onMovies = { dest = Destination.MOVIES },
+                onSeries = { dest = Destination.SERIES },
                 onFavorites = { liveVm.selectGroup("fav"); dest = Destination.LIVE },
-                onSettings = { dest = Destination.SETTINGS },
             )
             Destination.ADD_APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
             Destination.APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
             Destination.ENTERTAINMENT -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
-            Destination.LIBRARY -> IptvLibraryScreen(onPlay = { ch -> playing = listOf(ch) to 0 })
+            Destination.LIBRARY, Destination.MOVIES, Destination.SERIES -> IptvLibraryScreen(
+                onPlay = { ch -> playing = listOf(ch) to 0 },
+                initialSeries = dest == Destination.SERIES,
+            )
             Destination.SERVICES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
             Destination.LIVE -> LiveScreen(
                 groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
                 loading = liveLoading, progress = liveProgress,
-                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleGrouped = liveVm::toggleGrouped, onOpenGloboplay = {}, onCheck = liveVm::checkChannels,
+                onSelectGroup = liveVm::selectGroup, onQuery = liveVm::setQuery, onToggleGrouped = liveVm::toggleGrouped, onOpenGloboplay = {}, onCheck = {},
                 onPlay = { list, ch ->
                     if (ch.external) {
                         if (!context.openUrl(ch.url)) Toast.makeText(context, "Instale o app do YouTube ou da Twitch para abrir este canal.", Toast.LENGTH_LONG).show()
@@ -134,31 +137,7 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
     }
 
     Box(Modifier.fillMaxSize().background(Color(0xFF080706))) {
-        when {
-            !iptvConnected -> Box(Modifier.fillMaxSize().focusRequester(contentFocus).focusGroup()) { screen() }
-            dest == Destination.HOME -> Box(Modifier.fillMaxSize().focusRequester(contentFocus).focusGroup()) { screen() }
-            lite -> Column(Modifier.fillMaxSize()) {
-                LiteTopBar(selected = dest, onSelect = navigate)
-                Box(Modifier.weight(1f).fillMaxWidth().focusRequester(contentFocus).focusGroup()) { screen() }
-            }
-            else -> {
-                Canvas(Modifier.fillMaxSize()) {
-                    drawRect(Brush.radialGradient(listOf(accent.copy(alpha = 0.10f), Color.Transparent),
-                        center = Offset(size.width * 0.72f, 0f), radius = size.width * 0.45f))
-                }
-                Row(Modifier.fillMaxSize()) {
-                    SPSidebar(
-                        items = Destination.entries.filter { it.inMenu }.map { it.toSidebarItem() },
-                        selectedId = dest.name,
-                        onSelect = { navigate(Destination.valueOf(it)) },
-                    )
-                    Column(Modifier.weight(1f).fillMaxHeight()) {
-                        SPHeader(onSettings = { dest = Destination.SETTINGS })
-                        Box(Modifier.weight(1f).fillMaxWidth().focusRequester(contentFocus).focusGroup()) { screen() }
-                    }
-                }
-            }
-        }
+        Box(Modifier.fillMaxSize().focusRequester(contentFocus).focusGroup()) { screen() }
         playing?.let { (list, start) -> PlayerScreen(list, start, onClose = { playing = null }) }
     }
 }
@@ -167,15 +146,15 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
 @Composable
 private fun StreetPlayHomeScreen(
     onLive: () -> Unit,
-    onLibrary: () -> Unit,
+    onMovies: () -> Unit,
+    onSeries: () -> Unit,
     onFavorites: () -> Unit,
-    onSettings: () -> Unit,
 ) {
     val accent = Color(0xFFFF7417)
     val cards = listOf(
         Triple("CANAIS AO VIVO", "TV", onLive),
-        Triple("FILMES", "FILME", onLibrary),
-        Triple("SÉRIES", "SÉRIE", onLibrary),
+        Triple("FILMES", "FILME", onMovies),
+        Triple("SÉRIES", "SÉRIE", onSeries),
         Triple("FAVORITOS", "♡", onFavorites),
     )
     Column(
