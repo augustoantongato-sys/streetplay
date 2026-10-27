@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -167,24 +169,45 @@ private fun FullScreenIptvLogin(message: String, onSave: (String, String, String
     var password by remember { mutableStateOf("") }
     var server by remember { mutableStateOf("") }
     val orange = Color(0xFFFF7417)
-    Box(Modifier.fillMaxSize().background(Color(0xFF050505)).padding(36.dp), contentAlignment = Alignment.Center) {
-        Column(Modifier.fillMaxWidth().widthIn(max = 620.dp).background(Color(0xFF11100F), RoundedCornerShape(30.dp)).padding(horizontal = 42.dp, vertical = 34.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            SPText("▶", TextStyle(fontSize = 64.sp, fontWeight = FontWeight.Black, color = orange))
-            SPText("IPTV", TextStyle(fontSize = 42.sp, fontWeight = FontWeight.Black, color = Color.White))
-            SPText("P L A Y", TextStyle(fontSize = 19.sp, fontWeight = FontWeight.Bold, color = orange))
-            SPText("Sua TV, do seu jeito.", SPType.Body, color = Color(0xFFB9B3AE))
-            FullScreenLoginField(username, { username = it }, "Usuário")
-            FullScreenLoginField(password, { password = it }, "Senha", secret = true)
-            FullScreenLoginField(server, { server = it }, "Servidor")
-            if (message.isNotBlank()) SPText(message, SPType.Caption, color = Color(0xFFFFB28A))
-            SPButton("ENTRAR", onClick = { onSave(server.trim(), username.trim(), password) })
+    BoxWithConstraints(
+        Modifier.fillMaxSize().background(Color(0xFF050505)),
+    ) {
+        val compact = maxWidth < 420.dp
+        val horizontal = if (compact) 18.dp else 36.dp
+        Column(
+            Modifier.fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = horizontal, vertical = if (compact) 22.dp else 36.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Column(
+                Modifier.fillMaxWidth().widthIn(max = 620.dp)
+                    .background(Color(0xFF11100F), RoundedCornerShape(if (compact) 24.dp else 30.dp))
+                    .padding(horizontal = if (compact) 22.dp else 42.dp, vertical = if (compact) 26.dp else 34.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(if (compact) 14.dp else 18.dp),
+            ) {
+                Box(
+                    Modifier.size(if (compact) 66.dp else 82.dp)
+                        .background(
+                            Brush.linearGradient(listOf(Color(0xFFFF8A28), Color(0xFFE94B00))),
+                            RoundedCornerShape(if (compact) 20.dp else 24.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SPText("▶", TextStyle(fontSize = if (compact) 34.sp else 42.sp, fontWeight = FontWeight.Black, color = Color.White))
+                }
+                SPText("STREET PLAY", TextStyle(fontSize = if (compact) 30.sp else 42.sp, fontWeight = FontWeight.Black, color = Color.White))
+                SPText("ENTRETENIMENTO EM UM SÓ LUGAR", TextStyle(fontSize = if (compact) 9.sp else 11.sp, fontWeight = FontWeight.Bold, color = orange))
+                Spacer(Modifier.height(2.dp))
+                SPText("Entre com os dados da sua conta IPTV", SPType.Body, color = Color(0xFFB9B3AE))
+                FullScreenLoginField(username, { username = it }, "Usuário")
+                FullScreenLoginField(password, { password = it }, "Senha", secret = true)
+                FullScreenLoginField(server, { server = it }, "Servidor (http:// ou https://)")
+                if (message.isNotBlank()) SPText(message, SPType.Caption, color = Color(0xFFFFB28A))
+                SPButton("ENTRAR", onClick = { onSave(server.trim(), username.trim(), password) }, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
-}
-
-@Composable
-private fun FullScreenLoginField(value: String, onValue: (String) -> Unit, hint: String, secret: Boolean = false) {
-    BasicTextField(value = value, onValueChange = onValue, singleLine = true, textStyle = TextStyle(color = Color.White, fontSize = 20.sp), visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None, modifier = Modifier.fillMaxWidth().background(Color(0xFF24201D), RoundedCornerShape(18.dp)).padding(horizontal = 22.dp, vertical = 19.dp), decorationBox = { inner ->
-        Box { if (value.isEmpty()) SPText(hint, SPType.Body, color = Color(0xFFAAA19A)); inner() }
-    })
 }
