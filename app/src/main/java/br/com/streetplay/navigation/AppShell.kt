@@ -129,31 +129,29 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
         }
     }
 
-    Box(
-        Modifier.fillMaxSize().then(
-            if (lite) Modifier.background(Color.Black)
-            else Modifier.background(Brush.linearGradient(listOf(Color(0xFF0F0F0F), Color(0xFF080808))))
-        ),
-    ) {
-        if (lite) {
-            Column(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(Color(0xFF080706))) {
+        when {
+            !iptvConnected -> Box(Modifier.fillMaxSize().focusRequester(contentFocus).focusGroup()) { screen() }
+            dest == Destination.HOME -> Box(Modifier.fillMaxSize().focusRequester(contentFocus).focusGroup()) { screen() }
+            lite -> Column(Modifier.fillMaxSize()) {
                 LiteTopBar(selected = dest, onSelect = navigate)
                 Box(Modifier.weight(1f).fillMaxWidth().focusRequester(contentFocus).focusGroup()) { screen() }
             }
-        } else {
-            Canvas(Modifier.fillMaxSize()) {
-                drawRect(Brush.radialGradient(listOf(accent.copy(alpha = 0.10f), Color.Transparent),
-                    center = Offset(size.width * 0.72f, 0f), radius = size.width * 0.45f))
-            }
-            Row(Modifier.fillMaxSize()) {
-                SPSidebar(
-                    items = Destination.entries.filter { it.inMenu }.map { it.toSidebarItem() },
-                    selectedId = dest.name,
-                    onSelect = { navigate(Destination.valueOf(it)) },
-                )
-                Column(Modifier.weight(1f).fillMaxHeight()) {
-                    SPHeader(onSettings = { dest = Destination.SETTINGS })
-                    Box(Modifier.weight(1f).fillMaxWidth().focusRequester(contentFocus).focusGroup()) { screen() }
+            else -> {
+                Canvas(Modifier.fillMaxSize()) {
+                    drawRect(Brush.radialGradient(listOf(accent.copy(alpha = 0.10f), Color.Transparent),
+                        center = Offset(size.width * 0.72f, 0f), radius = size.width * 0.45f))
+                }
+                Row(Modifier.fillMaxSize()) {
+                    SPSidebar(
+                        items = Destination.entries.filter { it.inMenu }.map { it.toSidebarItem() },
+                        selectedId = dest.name,
+                        onSelect = { navigate(Destination.valueOf(it)) },
+                    )
+                    Column(Modifier.weight(1f).fillMaxHeight()) {
+                        SPHeader(onSettings = { dest = Destination.SETTINGS })
+                        Box(Modifier.weight(1f).fillMaxWidth().focusRequester(contentFocus).focusGroup()) { screen() }
+                    }
                 }
             }
         }
@@ -169,24 +167,69 @@ private fun StreetPlayHomeScreen(
     onFavorites: () -> Unit,
     onSettings: () -> Unit,
 ) {
+    val accent = Color(0xFFFF7417)
+    val cards = listOf(
+        Triple("CANAIS AO VIVO", "TV", onLive),
+        Triple("FILMES", "FILME", onLibrary),
+        Triple("SÉRIES", "SÉRIE", onLibrary),
+        Triple("FAVORITOS", "♡", onFavorites),
+        Triple("CONFIGURAÇÕES", "⚙", onSettings),
+    )
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 34.dp, vertical = 26.dp),
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFF17100C), Color(0xFF080808), Color(0xFF050505)))
+        ).padding(horizontal = 42.dp, vertical = 28.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SPText("STREET PLAY", SPType.Display, color = LocalAccent.current)
-            SPText("Seu entretenimento em um só lugar.", SPType.Title)
-            SPText("Canais, filmes e séries da sua conta IPTV.", SPType.Body, color = Color(0xFFB8B8B8))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            SPText("▶", SPType.Display, color = accent)
+            Spacer(Modifier.width(12.dp))
+            SPText("STREET PLAY", SPType.Title, color = Color.White)
+            Spacer(Modifier.weight(1f))
+            SPText("SUA TV, DO SEU JEITO.", SPType.Caption, color = Color(0xFFB5AAA2))
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            SPActionTile("Assistir TV ao vivo", br.com.streetplay.core.design.SPIconKind.TV, onLive, Modifier.weight(1f).height(116.dp))
-            SPActionTile("Filmes e séries", br.com.streetplay.core.design.SPIconKind.STREAMING, onLibrary, Modifier.weight(1f).height(116.dp))
+        Box(
+            Modifier.fillMaxWidth().weight(1.05f).background(
+                Brush.horizontalGradient(listOf(Color(0xFF26150D), Color(0xFF15100D), Color(0xFF080808))),
+                androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+            ).padding(horizontal = 38.dp, vertical = 26.dp),
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawCircle(Brush.radialGradient(listOf(Color(0x99FF7417), Color.Transparent), center = Offset(size.width * .78f, size.height * .45f), radius = size.height * .9f), radius = size.height * .9f, center = Offset(size.width * .78f, size.height * .45f))
+                drawRect(Brush.horizontalGradient(listOf(Color(0xCC080808), Color.Transparent)))
+            }
+            Column(Modifier.align(androidx.compose.ui.Alignment.CenterStart).widthIn(max = 590.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SPText("IPTV  •  STREET PLAY", SPType.Label, color = accent)
+                SPText("SEU ENTRETENIMENTO", SPType.Display, color = Color.White)
+                SPText("EM UM SÓ LUGAR", SPType.Display, color = accent)
+                SPText("Canais, filmes e séries, tudo o que você ama, em uma experiência feita para a sua TV.", SPType.Body, color = Color(0xFFE0D8D2), maxLines = 3)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SPText("＋ CANAIS", SPType.Caption, color = Color.White)
+                    SPText("✦ FILMES E SÉRIES", SPType.Caption, color = Color.White)
+                    SPText("◉ ALTA QUALIDADE", SPType.Caption, color = Color.White)
+                }
+            }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            SPActionTile("Favoritos", br.com.streetplay.core.design.SPIconKind.FAVORITES, onFavorites, Modifier.weight(1f).height(82.dp))
-            SPActionTile("Configurações", br.com.streetplay.core.design.SPIconKind.SETTINGS, onSettings, Modifier.weight(1f).height(82.dp))
+        Row(Modifier.fillMaxWidth().weight(.95f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            cards.forEachIndexed { index, card ->
+                SPFocusIndicator(
+                    onClick = card.third,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp),
+                    container = if (index == 0) Brush.verticalGradient(listOf(Color(0xFFFF8A24), Color(0xFFB83A00))) else Brush.verticalGradient(listOf(Color(0xFF25201D), Color(0xFF0E0D0C))),
+                    focusedContainer = Brush.verticalGradient(listOf(Color(0xFFFF9A36), Color(0xFFC64A08))),
+                    focusScale = 1.035f,
+                ) {
+                    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        SPText(card.second, TextStyle(fontSize = 38.sp, fontWeight = FontWeight.Bold, color = if (index == 0) Color.White else accent))
+                        Spacer(Modifier.height(18.dp))
+                        SPText(card.first, TextStyle(fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White), maxLines = 2)
+                        Spacer(Modifier.height(12.dp))
+                        SPText("→", TextStyle(fontSize = 24.sp, color = Color.White))
+                    }
+                }
+            }
         }
-        Spacer(Modifier.weight(1f))
-        SPText("O catálogo e a disponibilidade dependem do seu provedor IPTV.", SPType.Caption, color = Color(0xFF888888))
+        SPText("O catálogo e a disponibilidade dependem do seu provedor IPTV.", SPType.Caption, color = Color(0xFF8C817A))
     }
 }
