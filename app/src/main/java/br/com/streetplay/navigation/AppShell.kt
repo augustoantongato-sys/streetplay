@@ -103,14 +103,14 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                 onSeries = { dest = Destination.SERIES },
                 onFavorites = { liveVm.selectGroup("fav"); dest = Destination.LIVE },
             )
-            Destination.ADD_APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
-            Destination.APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
-            Destination.ENTERTAINMENT -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
+            Destination.ADD_APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onMovies = { dest = Destination.MOVIES }, onSeries = { dest = Destination.SERIES }, onFavorites = { dest = Destination.LIVE })
+            Destination.APPS -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onMovies = { dest = Destination.MOVIES }, onSeries = { dest = Destination.SERIES }, onFavorites = { dest = Destination.LIVE })
+            Destination.ENTERTAINMENT -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onMovies = { dest = Destination.MOVIES }, onSeries = { dest = Destination.SERIES }, onFavorites = { dest = Destination.LIVE })
             Destination.LIBRARY, Destination.MOVIES, Destination.SERIES -> IptvLibraryScreen(
                 onPlay = { ch -> playing = listOf(ch) to 0 },
                 initialSeries = dest == Destination.SERIES,
             )
-            Destination.SERVICES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
+            Destination.SERVICES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onMovies = { dest = Destination.MOVIES }, onSeries = { dest = Destination.SERIES }, onFavorites = { dest = Destination.LIVE })
             Destination.LIVE -> LiveScreen(
                 groups = liveGroups, filters = liveFilters, channels = liveChannels, status = liveStatus, favorites = liveFavs,
                 loading = liveLoading, progress = liveProgress,
@@ -124,8 +124,8 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
                     }
                 }, onToggleFavorite = liveVm::toggleFavorite,
             )
-            Destination.FAVORITES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
-            Destination.STORE -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onLibrary = { dest = Destination.LIBRARY }, onFavorites = { dest = Destination.LIVE }, onSettings = { dest = Destination.SETTINGS })
+            Destination.FAVORITES -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onMovies = { dest = Destination.MOVIES }, onSeries = { dest = Destination.SERIES }, onFavorites = { dest = Destination.LIVE })
+            Destination.STORE -> StreetPlayHomeScreen(onLive = { dest = Destination.LIVE }, onMovies = { dest = Destination.MOVIES }, onSeries = { dest = Destination.SERIES }, onFavorites = { dest = Destination.LIVE })
             Destination.SETTINGS -> SettingsScreen(
                 prefs = prefs, onMode = settingsVm::setMode, onAccent = settingsVm::setAccent, onAnimations = settingsVm::setAnimations,
                 onManageFavorites = { dest = Destination.FAVORITES }, onAbout = { dest = Destination.ABOUT },
