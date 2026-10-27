@@ -1,6 +1,8 @@
 package br.com.streetplay
 
 import android.os.Bundle
+import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,25 +33,27 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = if (packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         setContent {
             val prefs by settingsVm.prefs.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) {
                 launcherVm.messages.collect { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show() }
             }
-            // Tela de referência de 1280 dp de largura: o layout fica igual em 720p, 1080p ou 4K.
+            // A escala de referência é aplicada apenas na TV; no celular usamos a densidade nativa.
+            val tvDevice = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
             val dm = resources.displayMetrics
-            val density = Density(density = maxOf(dm.widthPixels, dm.heightPixels) / 1280f, fontScale = 1f)
-            CompositionLocalProvider(LocalDensity provides density) {
+            val tvDensity = Density(density = maxOf(dm.widthPixels, dm.heightPixels) / 1280f, fontScale = 1f)
+            val content: @androidx.compose.runtime.Composable () -> Unit = {
                 SPTheme(prefs.mode, prefs.accent, prefs.animations) {
                     CompositionLocalProvider(
                         LocalIconLoader provides launcherVm::loadIcon,
                         LocalBannerLoader provides launcherVm::loadBanner,
                         LocalRemoteImage provides (application as StreetPlayApp).container.imageLoader::load,
-                    ) {
-                        AppShell(launcherVm, settingsVm, discoverVm, liveVm)
-                    }
+                    ) { AppShell(launcherVm, settingsVm, discoverVm, liveVm) }
                 }
             }
+            if (tvDevice) CompositionLocalProvider(LocalDensity provides tvDensity) { content() }
+            else content()
         }
     }
 
