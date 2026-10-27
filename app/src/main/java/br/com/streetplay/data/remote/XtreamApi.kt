@@ -1,6 +1,9 @@
 package br.com.streetplay.data.remote
 
+import android.content.Context
 import android.net.Uri
+import java.io.File
+import java.security.MessageDigest
 import br.com.streetplay.domain.LiveChannel
 import org.json.JSONArray
 import org.json.JSONObject
@@ -26,7 +29,9 @@ data class XtreamEpisode(
  * Cliente Xtream Codes para o catálogo contratado pelo próprio usuário.
  * Não contém listas públicas, credenciais padrão nem URLs de terceiros.
  */
-class XtreamApi {
+class XtreamApi(context: Context) {
+    private val responseCache = DiskCache(File(context.cacheDir, "xtream_catalog"))
+    private val cacheAgeMs = 2 * 60 * 60 * 1000L
     suspend fun authenticate(credentials: XtreamCredentials): Boolean {
         val json = request(credentials)
         val user = json.optJSONObject("user_info") ?: error("Resposta inválida do provedor.")
@@ -157,12 +162,26 @@ class XtreamApi {
             .appendQueryParameter("password", credentials.password)
         action?.let { builder.appendQueryParameter("action", it) }
         params.forEach { (key, value) -> builder.appendQueryParameter(key, value) }
-        val body = Http.get(builder.build().toString())
-        return try {
-            if (body.trimStart().startsWith("[")) JSONArray(body) else JSONObject(body)
-        } catch (_: Exception) {
-            error("O provedor retornou uma resposta inválida.")
+        val requestUrl = builder.build().toString()
+        val body = if (action == null) {
+            Http.get(requestUrl)
+        } else {
+            val identity = credentials.server + "|" + credentials.username + "|" + credentials.password + "|" + action + "|" +
+                params.joinToString("|") { it.first + "=" + it.second }
+            val key = MessageDigest.getInstance("SHA-256")
+                .digest(identity.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+            responseCache.cached("xtream_" + key, cacheAgeMs) {
+                Http.get(requestUrl).also { parseResponse(it) }
+            } ?: Http.get(requestUrl)
         }
+        return parseResponse(body)
+    }
+
+    private fun parseResponse(body: String): Any = try {
+        if (body.trimStart().startsWith("[")) JSONArray(body) else JSONObject(body)
+    } catch (_: Exception) {
+        error("O provedor retornou uma resposta inválida. Verifique se o endereço informado é o servidor Xtream da sua conta, e não apenas o site do painel de revenda.")
     }
 
     private fun categoryNames(json: JSONArray, idKey: String, nameKey: String): Map<String, String> =
