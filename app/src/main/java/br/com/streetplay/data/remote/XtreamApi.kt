@@ -127,7 +127,7 @@ class XtreamApi {
     }
 
     fun playbackUrl(credentials: XtreamCredentials, type: String, id: String, extension: String?): String {
-        val ext = extension?.takeIf { it.matches(Regex("[A-Za-z0-9]{2,5}")) } ?: "ts"
+        val ext = extension?.takeIf { it.matches(Regex("[A-Za-z0-9]{2,5}")) } ?: if (type == "live") "ts" else "mp4"
         return "${credentials.server.trimEnd('/')}/$type/${Uri.encode(credentials.username)}/${Uri.encode(credentials.password)}/${Uri.encode(id)}.$ext"
     }
 
