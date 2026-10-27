@@ -3,6 +3,7 @@ package br.com.streetplay.features.live
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -95,66 +96,111 @@ fun LiveScreen(
         }
     }
 
-    Row(
-        modifier.fillMaxSize().padding(horizontal = if (lite) 40.dp else 26.dp).padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        LazyColumn(Modifier.width(250.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
-            item { SPText("Canais ao vivo", SPType.Title, Modifier.padding(bottom = 8.dp)) }
-            items(main, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
-            if (brazil.isNotEmpty()) item { GroupHeader("Brasil") }
-            items(brazil, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
-            item { GroupHeader("Categorias") }
-            items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
-            item { GroupHeader("Países") }
-            items(countries, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
-            if (adult.isNotEmpty()) {
-                item { GroupHeader("Conteúdo adulto") }
-                items(adult, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
-            }
-        }
-
-        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SPSearchField(filters.query, onQuery, "Buscar canal ou emissora", Modifier.weight(1f))
-                SPButton(if (filters.grouped) "Ver em lista" else "Ver por emissora", onToggleGrouped)
-            }
-            if (!lite) SPText(
-                if (filters.grouped) "${nets.size} emissoras · ${channels.size} canais · OK abre a emissora · Segure OK para favoritar"
-                else "${channels.size} canais · Segure OK para favoritar · Fora do ar aparece esmaecido",
-                SPType.Caption,
-            )
-            if (channels.isEmpty()) {
-                SPEmptyState(
-                    if (filters.group == "fav") "Nenhum favorito ainda" else "Nenhum canal aqui",
-                    if (filters.group == "fav") "Segure OK em um canal para favoritar." else "Tente outro grupo ou outra busca.",
-                )
-            } else {
-                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    LazyColumn(Modifier.weight(1f).fillMaxHeight(), state = listState, verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        if (maxWidth < 600.dp) {
+            Column(Modifier.fillMaxSize().padding(horizontal = 14.dp).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SPSearchField(filters.query, onQuery, "Buscar canal ou emissora", Modifier.fillMaxWidth())
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
+                    val allGroups = main + brazil + cats + countries + adult
+                    items(allGroups, key = { it.id }) { group ->
+                        SPFocusIndicator(
+                            onClick = { onSelectGroup(group.id) },
+                            shape = RoundedCornerShape(18.dp),
+                            container = if (group.id == filters.group) LocalAccent.current.copy(alpha = .22f) else SPColors.Card,
+                            focusedContainer = SPColors.CardFocused,
+                        ) {
+                            Row(Modifier.padding(horizontal = 13.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                                SPText(group.label, SPType.Label, color = if (group.id == filters.group) LocalAccent.current else SPColors.TextPrimary, maxLines = 1)
+                                Spacer(Modifier.width(6.dp))
+                                SPText(group.count.toString(), SPType.Caption)
+                            }
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    SPText(if (filters.grouped) "Emissoras e canais" else "Todos os canais", SPType.Title, color = Color.White)
+                    Spacer(Modifier.weight(1f))
+                    SPButton(if (filters.grouped) "Lista" else "Emissoras", onToggleGrouped)
+                }
+                if (channels.isEmpty()) {
+                    SPEmptyState(if (filters.group == "fav") "Nenhum favorito ainda" else "Nenhum canal aqui",
+                        if (loading) progress else "Tente outro grupo ou confira sua conexão.")
+                } else {
+                    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(bottom = 18.dp)) {
                         items(rows, key = { it.key }) { row ->
                             when (row) {
                                 is Row.Net -> NetworkRow(row) {
                                     expanded = if (row.g.key in expanded) expanded - row.g.key else expanded + row.g.key
                                 }
-                                is Row.Chan -> Box(Modifier.padding(start = if (row.nested) 40.dp else 0.dp)) {
-                                    ChannelRow(
-                                        row.number, row.ch, status[row.ch.url], row.ch.id in favorites, row.uf,
-                                        onClick = { onPlay(playlist, row.ch) }, onLong = { onToggleFavorite(row.ch.id) },
-                                    )
-                                }
+                                is Row.Chan -> ChannelRow(null, row.ch, status[row.ch.url], row.ch.id in favorites, row.uf,
+                                    onClick = { onPlay(playlist, row.ch) }, onLong = { onToggleFavorite(row.ch.id) })
                             }
                         }
                     }
-                    if (rows.size > 30 && letters.size > 1) {
-                        LazyColumn(Modifier.width(30.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(2.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
-                            items(letters, key = { it.first }) { (letter, index) ->
-                                SPFocusIndicator(
-                                    onClick = { scope.launch { listState.scrollToItem(index) } }, shape = CircleShape,
-                                    container = Color.Transparent, focusedContainer = SPColors.CardFocused, focusScale = 1.15f,
-                                ) {
-                                    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                        SPText(letter.toString(), TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SPColors.TextPrimary))
+                }
+            }
+        } else {
+        Row(
+            modifier.fillMaxSize().padding(horizontal = if (lite) 40.dp else 26.dp).padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            LazyColumn(Modifier.width(250.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(3.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
+                item { SPText("Canais ao vivo", SPType.Title, Modifier.padding(bottom = 8.dp)) }
+                items(main, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                if (brazil.isNotEmpty()) item { GroupHeader("Brasil") }
+                items(brazil, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                item { GroupHeader("Categorias") }
+                items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                item { GroupHeader("Países") }
+                items(countries, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                if (adult.isNotEmpty()) {
+                    item { GroupHeader("Conteúdo adulto") }
+                    items(adult, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                }
+            }
+    
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SPSearchField(filters.query, onQuery, "Buscar canal ou emissora", Modifier.weight(1f))
+                    SPButton(if (filters.grouped) "Ver em lista" else "Ver por emissora", onToggleGrouped)
+                }
+                if (!lite) SPText(
+                    if (filters.grouped) "${nets.size} emissoras · ${channels.size} canais · OK abre a emissora · Segure OK para favoritar"
+                    else "${channels.size} canais · Segure OK para favoritar · Fora do ar aparece esmaecido",
+                    SPType.Caption,
+                )
+                if (channels.isEmpty()) {
+                    SPEmptyState(
+                        if (filters.group == "fav") "Nenhum favorito ainda" else "Nenhum canal aqui",
+                        if (filters.group == "fav") "Segure OK em um canal para favoritar." else "Tente outro grupo ou outra busca.",
+                    )
+                } else {
+                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        LazyColumn(Modifier.weight(1f).fillMaxHeight(), state = listState, verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
+                            items(rows, key = { it.key }) { row ->
+                                when (row) {
+                                    is Row.Net -> NetworkRow(row) {
+                                        expanded = if (row.g.key in expanded) expanded - row.g.key else expanded + row.g.key
+                                    }
+                                    is Row.Chan -> Box(Modifier.padding(start = if (row.nested) 40.dp else 0.dp)) {
+                                        ChannelRow(
+                                            row.number, row.ch, status[row.ch.url], row.ch.id in favorites, row.uf,
+                                            onClick = { onPlay(playlist, row.ch) }, onLong = { onToggleFavorite(row.ch.id) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (rows.size > 30 && letters.size > 1) {
+                            LazyColumn(Modifier.width(30.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(2.dp), contentPadding = PaddingValues(vertical = 6.dp)) {
+                                items(letters, key = { it.first }) { (letter, index) ->
+                                    SPFocusIndicator(
+                                        onClick = { scope.launch { listState.scrollToItem(index) } }, shape = CircleShape,
+                                        container = Color.Transparent, focusedContainer = SPColors.CardFocused, focusScale = 1.15f,
+                                    ) {
+                                        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                            SPText(letter.toString(), TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SPColors.TextPrimary))
+                                        }
                                     }
                                 }
                             }
@@ -162,6 +208,7 @@ fun LiveScreen(
                     }
                 }
             }
+        }
         }
     }
 }
