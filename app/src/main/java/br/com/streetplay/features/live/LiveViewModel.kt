@@ -110,7 +110,7 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
 
 internal fun isStreamingChannel(channel: LiveChannel): Boolean {
     val text = (channel.name + " " + channel.network.orEmpty() + " " + channel.categories.joinToString(" ")).lowercase()
-    val pattern = """(^|[^a-z0-9])(hbo|max|paramount(\\+| plus)?|disney(\\+| plus)?|star(\\+| plus)?|telecine|prime video|amazon prime|apple tv(\\+| plus)?|mgm(\\+| plus)?|universal(\\+| plus)?|discovery(\\+| plus)?|crunchyroll|globoplay|looke|pluto tv|tnt|warner)([^a-z0-9]|$)"""
+    val pattern = """(^|[^a-z0-9])(hbo|max|paramount(\+| plus)?|disney(\+| plus)?|star(\+| plus)?|telecine|prime video|amazon prime|apple tv(\+| plus)?|mgm(\+| plus)?|universal(\+| plus)?|discovery(\+| plus)?|crunchyroll|globoplay|looke|pluto tv|tnt|warner)([^a-z0-9]|$)"""
     return Regex(pattern).containsMatchIn(text)
 }
 
