@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -210,4 +211,30 @@ private fun FullScreenIptvLogin(message: String, onSave: (String, String, String
             }
         }
     }
+}
+
+
+@Composable
+private fun FullScreenLoginField(
+    value: String,
+    onValue: (String) -> Unit,
+    hint: String,
+    secret: Boolean = false,
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValue,
+        singleLine = true,
+        textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
+        visualTransformation = if (secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        modifier = Modifier.fillMaxWidth()
+            .background(Color(0xFF202020), RoundedCornerShape(13.dp))
+            .padding(horizontal = 16.dp, vertical = 15.dp),
+        decorationBox = { inner ->
+            Box {
+                if (value.isEmpty()) SPText(hint, SPType.Body, color = Color(0xFF888888))
+                inner()
+            }
+        },
+    )
 }
