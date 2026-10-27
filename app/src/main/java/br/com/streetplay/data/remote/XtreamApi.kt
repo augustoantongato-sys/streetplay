@@ -69,7 +69,7 @@ class XtreamApi {
                 if (id.isBlank() || id == "null") continue
                 add(XtreamVodItem(
                     id, item.optString("name"), item.optString("stream_icon").takeIf { it.startsWith("http") },
-                    item.optString("category_id"), item.optString("container_extension"),
+                    item.optString("category_id"), validExtension(item.optString("container_extension")),
                     item.optString("rating").takeIf { it.isNotBlank() }, null,
                 ))
             }
@@ -82,7 +82,7 @@ class XtreamApi {
         val movie = root.optJSONObject("movie_data") ?: JSONObject()
         return XtreamVodItem(
             movieId, movie.optString("name"), info.optString("movie_image").takeIf { it.startsWith("http") },
-            movie.optString("category_id"), movie.optString("container_extension"),
+            movie.optString("category_id"), validExtension(movie.optString("container_extension")),
             info.optString("rating"), info.optString("plot"),
         )
     }
@@ -118,8 +118,8 @@ class XtreamApi {
                 result += XtreamEpisode(
                     id, ep.optString("title").ifBlank { "Episódio ${i + 1}" },
                     ep.optInt("season", seasonNumber), ep.optInt("episode_num", i + 1),
-                    ep.optString("container_extension").takeIf { it.isNotBlank() },
-                    ep.optString("container_extension").takeIf { it.isNotBlank() },
+                    validExtension(ep.optString("container_extension")),
+                    validExtension(ep.optString("container_extension")),
                 )
             }
         }
@@ -135,8 +135,13 @@ class XtreamApi {
         val root = getJson(credentials, action)
         return when (root) {
             is JSONArray -> root
-            is JSONObject -> JSONArray()
-            else -> JSONArray()
+            is JSONObject -> {
+                val detail = root.optString("error").takeIf { it.isNotBlank() && it != "null" }
+                    ?: root.optString("message").takeIf { it.isNotBlank() && it != "null" }
+                if (detail != null) error("Provedor IPTV: $detail")
+                error("O provedor não retornou uma lista válida para $action. Confira se seu plano inclui esse catálogo.")
+            }
+            else -> error("Resposta inválida do provedor para $action.")
         }
     }
 
@@ -172,4 +177,7 @@ class XtreamApi {
 
     private fun normalizeCategory(name: String): String =
         name.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
+
+    private fun validExtension(value: String?): String? =
+        value?.takeIf { it.isNotBlank() && it != "null" && it.matches(Regex("[A-Za-z0-9]{2,5}")) }
 }
