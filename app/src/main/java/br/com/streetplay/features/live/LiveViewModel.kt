@@ -108,8 +108,15 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
     }
 }
 
+internal fun isAdultChannel(channel: LiveChannel): Boolean {
+    val text = (channel.name + " " + channel.network.orEmpty() + " " + channel.categories.joinToString(" "))
+        .lowercase()
+    return text.contains(Regex("""(^|[^a-z0-9])(18\+?|xxx|adult|adulto|adultos|erotic|erotico|erótica|porn|porno)([^a-z0-9]|$)"""))
+}
+
 internal fun filterGroup(all: List<LiveChannel>, group: String, favs: Set<String>): List<LiveChannel> = when {
-    group == "br:regional" -> all.filter { it.country == "BR" && !Networks.isMajorBrazilian(it) }
+    group == "adult:18" -> all.filter(::isAdultChannel)
+    group == "br:regional" -> all.filter { it.country == "BR" && !isAdultChannel(it) && !Networks.isMajorBrazilian(it) }
     group.startsWith("bk:") -> all.filter { it.country == "BR" && group.substring(3) in it.categories }
     group == "all" -> all
     group == "fav" -> all.filter { it.id in favs }
@@ -125,7 +132,8 @@ internal fun buildGroups(all: List<LiveChannel>, favs: Set<String>): List<LiveGr
         LiveGroup("fav", "Favoritos", all.count { it.id in favs }, GroupKind.FAVORITES),
         LiveGroup("c:BR", "Brasil", all.count { it.country == "BR" }, GroupKind.COUNTRY),
     )
-    val cats = all.flatMap { it.categories }.groupingBy { it }.eachCount().entries
+    val adult = all.count(::isAdultChannel)
+    val cats = all.filterNot(::isAdultChannel).flatMap { it.categories }.groupingBy { it }.eachCount().entries
         .sortedByDescending { it.value }
         .map { LiveGroup("k:${it.key}", LiveLabels.category(it.key), it.value, GroupKind.CATEGORY) }
     val countries = all.groupingBy { it.country }.eachCount().filterKeys { it.isNotBlank() && it != "BR" }.entries
@@ -138,5 +146,5 @@ internal fun buildGroups(all: List<LiveChannel>, favs: Set<String>): List<LiveGr
     }
     val regional = br.count { !Networks.isMajorBrazilian(it) }
     val brazil = brKinds + if (regional > 0) listOf(LiveGroup("br:regional", "Regionais e outros", regional, GroupKind.BRAZIL)) else emptyList()
-    return main + brazil + cats + countries
+    return main + brazil + cats + countries + if (adult > 0) listOf(LiveGroup("adult:18", "Adultos (18+)", adult, GroupKind.CATEGORY)) else emptyList()
 }
