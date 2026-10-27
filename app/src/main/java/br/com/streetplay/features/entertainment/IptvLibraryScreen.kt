@@ -75,11 +75,11 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, initialSeries: Boolean = fa
         modifier.fillMaxSize().background(dark).padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SPText(if (tab == LibraryTab.MOVIES) "FILMES" else "SÉRIES", SPType.Title, color = accent)
-            Spacer(Modifier.weight(1f))
-            SPButton("Atualizar", onClick = { refresh() })
-        }
+        LibrarySectionBanner(
+            title = if (tab == LibraryTab.MOVIES) "FILMES" else "SÉRIES",
+            subtitle = if (tab == LibraryTab.MOVIES) "Descubra e assista aos seus filmes" else "Suas séries, temporadas e episódios",
+            onRefresh = { refresh() },
+        )
         if (message.isNotBlank()) SPText(message, SPType.Caption, color = SPColors.TextSecondary)
         if (loading) SPText("Carregando catálogo…", SPType.Body, color = Color.White)
 
@@ -316,5 +316,34 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, initialSeries: Boolean = fa
             }
         }
         if (message.isNotBlank() && !loading) SPText(message, SPType.Caption, color = SPColors.TextSecondary)
+    }
+}
+
+
+@Composable
+private fun LibrarySectionBanner(title: String, subtitle: String, onRefresh: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth()
+            .height(104.dp)
+            .background(
+                Brush.horizontalGradient(listOf(Color(0xFFFF8A00), Color(0xFFFF5A00), Color(0xFFD83B00))),
+                RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier.size(52.dp).background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            SPText("▶", SPType.Title, color = Color.White)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            SPText("STREET PLAY", SPType.Caption, color = Color.White.copy(alpha = 0.9f))
+            SPText(title, SPType.Title, color = Color.White, maxLines = 1)
+            SPText(subtitle, SPType.Caption, color = Color.White.copy(alpha = 0.92f), maxLines = 1)
+        }
+        SPButton("Atualizar", onClick = onRefresh)
     }
 }
