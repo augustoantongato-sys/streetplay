@@ -177,7 +177,6 @@ private fun StreetPlayHomeScreen(
         Triple("FILMES", "FILME", onLibrary),
         Triple("SÉRIES", "SÉRIE", onLibrary),
         Triple("FAVORITOS", "♡", onFavorites),
-        Triple("CONFIGURAÇÕES", "⚙", onSettings),
     )
     Column(
         Modifier.fillMaxSize().background(
