@@ -144,7 +144,7 @@ internal fun buildGroups(all: List<LiveChannel>, favs: Set<String>): List<LiveGr
         val n = br.count { k in it.categories }
         if (n > 0) LiveGroup("bk:$k", LiveLabels.category(k), n, GroupKind.BRAZIL) else null
     }
-    val regional = br.count { !Networks.isMajorBrazilian(it) }
+    val regional = br.count { !isAdultChannel(it) && !Networks.isMajorBrazilian(it) }
     val brazil = brKinds + if (regional > 0) listOf(LiveGroup("br:regional", "Regionais e outros", regional, GroupKind.BRAZIL)) else emptyList()
     return main + brazil + cats + countries + if (adult > 0) listOf(LiveGroup("adult:18", "Adultos (18+)", adult, GroupKind.CATEGORY)) else emptyList()
 }
