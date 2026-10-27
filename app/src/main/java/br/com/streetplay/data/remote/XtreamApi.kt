@@ -53,7 +53,7 @@ class XtreamApi(context: Context) {
                 val url = playbackUrl(credentials, "live", id, ext)
                 add(LiveChannel(
                     id = "xtream:$id",
-                    name = item.optString("name").ifBlank { "Canal $id" },
+                    name = displayName(item.optString("name")).ifBlank { "Canal $id" },
                     logo = item.optString("stream_icon").takeIf { it.startsWith("http") },
                     country = "BR",
                     categories = listOfNotNull(categories[categoryId]?.let { normalizeCategory(it) }),
@@ -73,7 +73,7 @@ class XtreamApi(context: Context) {
                 val id = item.optString("stream_id")
                 if (id.isBlank() || id == "null") continue
                 add(XtreamVodItem(
-                    id, item.optString("name"), item.optString("stream_icon").takeIf { it.startsWith("http") },
+                    id, displayName(item.optString("name")), item.optString("stream_icon").takeIf { it.startsWith("http") },
                     item.optString("category_id"), validExtension(item.optString("container_extension")),
                     item.optString("rating").takeIf { it.isNotBlank() }, null,
                 ))
@@ -86,7 +86,7 @@ class XtreamApi(context: Context) {
         val info = root.optJSONObject("info") ?: JSONObject()
         val movie = root.optJSONObject("movie_data") ?: JSONObject()
         return XtreamVodItem(
-            movieId, movie.optString("name"), info.optString("movie_image").takeIf { it.startsWith("http") },
+            movieId, displayName(movie.optString("name")), info.optString("movie_image").takeIf { it.startsWith("http") },
             movie.optString("category_id"), validExtension(movie.optString("container_extension")),
             info.optString("rating"), info.optString("plot"),
         )
@@ -100,7 +100,7 @@ class XtreamApi(context: Context) {
                 val id = item.optString("series_id")
                 if (id.isBlank() || id == "null") continue
                 add(XtreamSeriesItem(
-                    id, item.optString("name"), item.optString("cover").takeIf { it.startsWith("http") },
+                    id, displayName(item.optString("name")), item.optString("cover").takeIf { it.startsWith("http") },
                     item.optString("category_id"), item.optString("rating"), item.optString("plot"),
                 ))
             }
@@ -121,7 +121,7 @@ class XtreamApi(context: Context) {
                 val id = ep.optString("id")
                 if (id.isBlank() || id == "null") continue
                 result += XtreamEpisode(
-                    id, ep.optString("title").ifBlank { "Episódio ${i + 1}" },
+                    id, displayName(ep.optString("title")).ifBlank { "Episódio ${i + 1}" },
                     ep.optInt("season", seasonNumber), ep.optInt("episode_num", i + 1),
                     validExtension(ep.optString("container_extension")),
                     validExtension(ep.optString("container_extension")),
@@ -193,6 +193,9 @@ class XtreamApi(context: Context) {
                 if (id.isNotBlank() && name.isNotBlank()) put(id, name)
             }
         }
+
+    /** Normaliza apenas espaços; preserva acentos, pontuação e grafia enviada pelo provedor. */
+    private fun displayName(value: String): String = value.replace(Regex("\\s+"), " ").trim()
 
     private fun normalizeCategory(name: String): String =
         name.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
