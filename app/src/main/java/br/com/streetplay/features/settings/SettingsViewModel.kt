@@ -50,9 +50,17 @@ class SettingsViewModel(private val store: PrefsStore, private val xtreamStore: 
         try {
             val account = XtreamCredentials(server.trim().trimEnd('/'), username.trim(), password)
             xtreamApi.authenticate(account)
+            // Confirma que a mesma credencial libera as três áreas do Street Play.
+            // Os catálogos são consultados apenas ao conectar, não a cada abertura do app.
+            val liveCount = xtreamApi.liveChannels(account).size
+            val movieCount = xtreamApi.movies(account).size
+            val seriesCount = xtreamApi.series(account).size
+            if (liveCount + movieCount + seriesCount == 0) {
+                error("A conta foi autenticada, mas o provedor não retornou canais, filmes ou séries.")
+            }
             xtreamStore.save(account)
             _iptvConnected.value = true
-            _iptvMessage.value = "Acesso liberado! Conta validada com sucesso."
+            _iptvMessage.value = "Conectado com um único login! $liveCount canais • $movieCount filmes • $seriesCount séries."
         } catch (e: Exception) {
             _iptvConnected.value = false
             _iptvMessage.value = e.message ?: "Não foi possível conectar."
