@@ -1,6 +1,7 @@
 package br.com.streetplay.core.design
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -67,6 +68,7 @@ fun SPText(
 )
 
 /** Base de todo elemento focável: foco sempre visível (borda na cor de destaque + escala). */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SPFocusIndicator(
     onClick: () -> Unit,
