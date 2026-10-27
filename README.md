@@ -1,45 +1,56 @@
-# STREET PLAY — Launcher premium para Android TV
+# STREET PLAY
 
-*Seu entretenimento. Do seu jeito.* · Kotlin · Jetpack Compose for TV · Room · DataStore · MVVM · **zero anúncios**
+*Seu entretenimento. Do seu jeito.*
 
-## Como gerar o APK instalável
-O APK **não vem pré-compilado** (o ambiente onde o código foi escrito não tem Android SDK).
+## Site oficial
 
-**Opção A — GitHub Actions (sem instalar nada):**
-1. Crie um repositório e envie esta pasta (`git init && git add . && git commit -m init && git push`).
-2. Aba **Actions → Build APK**. Ao terminar, baixe o artefato `StreetPlay-debug-apk`.
+O arquivo `index.html` contém a central de downloads. O projeto pode ser publicado como site estático na Vercel usando a raiz deste repositório.
 
-**Opção B — Android Studio:** abra a pasta, aguarde o sync, **Build → Build APK(s)**.
-Saída: `app/build/outputs/apk/debug/app-debug.apk`.
+Domínio desejado: **https://streetplay.vercel.app**
 
-## Instalar na TV / TV Box
-```
-adb connect IP_DA_TV:5555
-adb install -r app-debug.apk
-```
-Ou copie o APK num pendrive e abra com um gerenciador de arquivos. Ele aparecerá na lista de apps da TV.
-Para torná-lo o launcher: *Configurações → Street Play → Definir como launcher* (depende do fabricante).
-Release assinado: configure `signingConfigs` com seu keystore (nunca versionar o `.jks`).
+Para publicar:
+1. Importe este repositório na Vercel.
+2. Selecione a branch `test-chatgpt-access-20261026-2` durante a validação.
+3. Use a raiz do repositório como diretório do projeto; não é necessário comando de build para a página estática.
+4. Em Settings → Domains, associe `streetplay.vercel.app` ao projeto e conclua a validação DNS solicitada pela Vercel.
 
-## Arquitetura
-```
-app/src/main/java/br/com/streetplay/
-├─ core/design     tokens, tema e componentes SP* (SPButton, SPAppCard, SPSidebar, SPDialog…)
-├─ core/database   Room: favoritos e histórico de uso
-├─ core/storage    DataStore: papel de parede, cor, animações
-├─ core/common     intents do sistema, carregador de ícones, utilitários
-├─ data / domain   AppRepository (PackageManager), catálogo dos 6 atalhos, modelos
-├─ features/       home, applications, favorites, entertainment, store, settings, about
-└─ navigation      AppShell + Destination (menu lateral)
-```
+A página consulta a última Release pública do GitHub e só libera os downloads quando encontra arquivos com nomes compatíveis:
+- `StreetPlay-TV.apk`
+- `StreetPlay-Mobile.apk`
+- um instalador `.exe`
 
-## Decisões e limitações
-- **Package visibility:** `<queries>` declara só intents de launcher + os pacotes dos 6 atalhos. Sem `QUERY_ALL_PACKAGES`.
-- **Recentes:** o Android exige permissão especial (Usage Access) para ler uso de outros apps. Alternativa real: o Street Play registra localmente os apps abertos *por ele*.
-- **Papel de parede:** 4 presets. Imagem própria exigiria seletor de arquivos, ausente em muitas TVs.
-- **Ícones do menu:** numerados (fonte-safe). Ícones vetoriais ficam para a v1.1.
-- **Launcher padrão:** só onde o fabricante permitir; o app abre a tela do sistema, não força nada.
-- **Sem** AdMob/SDKs de anúncio, Firebase, Supabase, INTERNET, rastreadores ou APIs privadas.
+Até que esses arquivos sejam publicados, os botões ficam desativados. Isso evita oferecer downloads inexistentes.
 
-## Status de verificação
-Código escrito mas **ainda não compilado nem testado em dispositivo**. Rode a pipeline (testes unitários + build) antes de tudo; corrija eventuais ajustes de API do `tv-material` se o compilador apontar.
+## Aplicativo Android
+
+Projeto nativo Kotlin + Jetpack Compose, com suporte a Android TV e dispositivos Android com tela sensível ao toque. O APK atual é um pacote Android universal; ainda não são dois APKs independentes.
+
+### Gerar APK
+
+A pipeline GitHub Actions executa testes unitários e `:app:assembleDebug`. O artefato atual é publicado como `StreetPlay-debug`.
+
+Último build validado:
+- Run: https://github.com/augustoantongato-sys/streetplay/actions/runs/40367674828
+- Commit: `ee9edab266bfeaccdffe0676b8ec57266210db66`
+- Testes unitários: sucesso
+- Build APK: sucesso
+
+## Experiência de filmes e séries
+
+A tela IPTV usa os dados reais retornados pela conta Xtream cadastrada:
+- Filmes: destaque, catálogo em fileira, detalhes e reprodução no player interno.
+- Séries: catálogo, detalhes, temporadas e episódios.
+- A disponibilidade de conteúdos depende do provedor e da conta do usuário.
+
+## Plataformas e estado atual
+
+| Plataforma | Estado |
+|---|---|
+| Android TV | APK Android universal compila; validar navegação em dispositivo real |
+| Celular Android | APK Android universal compila; adaptar e validar layout touch em dispositivo real |
+| Windows | Aplicativo instalável ainda precisa ser desenvolvido e compilado |
+| Site | Página estática pronta para publicação na Vercel; domínio precisa ser associado ao projeto |
+
+## Importante
+
+O Street Play é um player e interface de acesso. O usuário deve fornecer uma conta de provedor IPTV e ter autorização para acessar os conteúdos. Não são fornecidos canais, filmes ou séries pelo projeto.
