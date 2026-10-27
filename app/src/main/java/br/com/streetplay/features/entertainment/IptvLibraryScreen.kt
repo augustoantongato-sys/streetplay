@@ -1,5 +1,6 @@
 package br.com.streetplay.features.entertainment
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
@@ -56,6 +57,11 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifi
             finally { loading = false }
         }
     }
+    BackHandler(enabled = selectedMovie != null || selectedSeries != null) {
+        if (selectedMovie != null) selectedMovie = null
+        else { selectedSeries = null; episodes = emptyList() }
+    }
+
     LaunchedEffect(tab, account) {
         selectedMovie = null; selectedSeries = null; episodes = emptyList(); refresh()
     }
