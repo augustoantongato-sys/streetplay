@@ -108,6 +108,12 @@ class LiveViewModel(private val repo: CatalogRepository, private val prefs: Pref
     }
 }
 
+internal fun isStreamingChannel(channel: LiveChannel): Boolean {
+    val text = (channel.name + " " + channel.network.orEmpty() + " " + channel.categories.joinToString(" ")).lowercase()
+    val pattern = """(^|[^a-z0-9])(hbo|max|paramount(\\+| plus)?|disney(\\+| plus)?|star(\\+| plus)?|telecine|prime video|amazon prime|apple tv(\\+| plus)?|mgm(\\+| plus)?|universal(\\+| plus)?|discovery(\\+| plus)?|crunchyroll|globoplay|looke|pluto tv|tnt|warner)([^a-z0-9]|$)"""
+    return Regex(pattern).containsMatchIn(text)
+}
+
 internal fun isAdultChannel(channel: LiveChannel): Boolean {
     val text = (channel.name + " " + channel.network.orEmpty() + " " + channel.categories.joinToString(" "))
         .lowercase()
@@ -116,9 +122,10 @@ internal fun isAdultChannel(channel: LiveChannel): Boolean {
 
 internal fun filterGroup(all: List<LiveChannel>, group: String, favs: Set<String>): List<LiveChannel> = when {
     group == "adult:18" -> all.filter(::isAdultChannel)
+    group == "streaming:services" -> all.filter { !isAdultChannel(it) && isStreamingChannel(it) }
     group == "br:regional" -> all.filter { it.country == "BR" && !isAdultChannel(it) && !Networks.isMajorBrazilian(it) }
     group.startsWith("bk:") -> all.filter { it.country == "BR" && group.substring(3) in it.categories }
-    group == "all" -> all
+    group == "all" -> all.filterNot(::isAdultChannel) + all.filter(::isAdultChannel)
     group == "fav" -> all.filter { it.id in favs }
     group.startsWith("c:") -> all.filter { it.country == group.substring(2) }
     group.startsWith("k:") -> all.filter { group.substring(2) in it.categories }
@@ -133,7 +140,9 @@ internal fun buildGroups(all: List<LiveChannel>, favs: Set<String>): List<LiveGr
         LiveGroup("c:BR", "Brasil", all.count { it.country == "BR" }, GroupKind.COUNTRY),
     )
     val adult = all.count(::isAdultChannel)
-    val cats = all.filterNot(::isAdultChannel).flatMap { it.categories }.groupingBy { it }.eachCount().entries
+    val streaming = all.count { !isAdultChannel(it) && isStreamingChannel(it) }
+    val streamingGroup = if (streaming > 0) listOf(LiveGroup("streaming:services", "Streaming", streaming, GroupKind.CATEGORY)) else emptyList()
+    val cats = all.filterNot { isAdultChannel(it) || isStreamingChannel(it) }.flatMap { it.categories }.groupingBy { it }.eachCount().entries
         .sortedByDescending { it.value }
         .map { LiveGroup("k:${it.key}", LiveLabels.category(it.key), it.value, GroupKind.CATEGORY) }
     val countries = all.groupingBy { it.country }.eachCount().filterKeys { it.isNotBlank() && it != "BR" }.entries
@@ -146,5 +155,5 @@ internal fun buildGroups(all: List<LiveChannel>, favs: Set<String>): List<LiveGr
     }
     val regional = br.count { !isAdultChannel(it) && !Networks.isMajorBrazilian(it) }
     val brazil = brKinds + if (regional > 0) listOf(LiveGroup("br:regional", "Regionais e outros", regional, GroupKind.BRAZIL)) else emptyList()
-    return main + brazil + cats + countries + if (adult > 0) listOf(LiveGroup("adult:18", "Adultos (18+)", adult, GroupKind.CATEGORY)) else emptyList()
+    return main + brazil + streamingGroup + cats + countries + if (adult > 0) listOf(LiveGroup("adult:18", "Adultos (18+)", adult, GroupKind.CATEGORY)) else emptyList()
 }
