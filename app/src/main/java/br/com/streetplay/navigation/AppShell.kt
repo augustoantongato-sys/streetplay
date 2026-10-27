@@ -48,6 +48,9 @@ import br.com.streetplay.features.live.PlayerScreen
 import br.com.streetplay.features.settings.SettingsScreen
 import br.com.streetplay.features.settings.SettingsViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: DiscoverViewModel, liveVm: LiveViewModel) {
@@ -80,7 +83,25 @@ fun AppShell(vm: LauncherViewModel, settingsVm: SettingsViewModel, discoverVm: D
 
     val contentFocus = remember { FocusRequester() }
     LaunchedEffect(dest) { if (dest == Destination.LIVE) liveVm.loadIfNeeded() }
-    LaunchedEffect(iptvConnected) { if (dest == Destination.LIVE) liveVm.reload() }
+    LaunchedEffect(iptvConnected) {
+        if (iptvConnected) {
+            val app = context.applicationContext as br.com.streetplay.StreetPlayApp
+            val account = app.container.xtreamAccountStore.load()
+            if (account != null) {
+                launch {
+                    // Aquece o cache em segundo plano sem bloquear a abertura da TV.
+                    coroutineScope {
+                        listOf(
+                            async { runCatching { app.container.xtreamApi.liveChannels(account) } },
+                            async { runCatching { app.container.xtreamApi.movies(account) } },
+                            async { runCatching { app.container.xtreamApi.series(account) } },
+                        ).forEach { it.await() }
+                    }
+                }
+            }
+        }
+        if (dest == Destination.LIVE) liveVm.reload()
+    }
     LaunchedEffect(dest, playing == null, lite) { delay(80); runCatching { contentFocus.requestFocus() } }
 
     val byPkg = remember(apps) { apps.associateBy { it.packageName } }
