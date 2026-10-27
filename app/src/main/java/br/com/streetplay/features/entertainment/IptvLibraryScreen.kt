@@ -28,13 +28,13 @@ private enum class LibraryTab { MOVIES, SERIES }
 
 /** Experiência cinematográfica para filmes e séries, com foco/controle remoto e toque. */
 @Composable
-fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifier) {
+fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, initialSeries: Boolean = false, modifier: Modifier = Modifier) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val app = context.applicationContext as StreetPlayApp
     val account = remember { app.container.xtreamAccountStore.load() }
     val api = remember { app.container.xtreamApi }
     val scope = rememberCoroutineScope()
-    var tab by remember { mutableStateOf(LibraryTab.MOVIES) }
+    var tab by remember(initialSeries) { mutableStateOf(if (initialSeries) LibraryTab.SERIES else LibraryTab.MOVIES) }
     var movies by remember { mutableStateOf<List<XtreamVodItem>>(emptyList()) }
     var series by remember { mutableStateOf<List<XtreamSeriesItem>>(emptyList()) }
     var episodes by remember { mutableStateOf<List<XtreamEpisode>>(emptyList()) }
@@ -73,10 +73,8 @@ fun IptvLibraryScreen(onPlay: (LiveChannel) -> Unit, modifier: Modifier = Modifi
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SPText("STREET PLAY", SPType.Title, color = accent)
+            SPText(if (tab == LibraryTab.MOVIES) "FILMES" else "SÉRIES", SPType.Title, color = accent)
             Spacer(Modifier.weight(1f))
-            SPButton("Filmes", onClick = { tab = LibraryTab.MOVIES; selectedMovie = null; selectedSeries = null }, selected = tab == LibraryTab.MOVIES)
-            SPButton("Séries", onClick = { tab = LibraryTab.SERIES; selectedMovie = null; selectedSeries = null }, selected = tab == LibraryTab.SERIES)
             SPButton("Atualizar", onClick = { refresh() })
         }
         if (message.isNotBlank()) SPText(message, SPType.Caption, color = SPColors.TextSecondary)
