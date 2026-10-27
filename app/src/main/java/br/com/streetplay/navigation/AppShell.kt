@@ -219,7 +219,7 @@ private fun StreetPlayHomeScreen(
                     onClick = card.third,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp),
-                    container = if (index == 0) Brush.verticalGradient(listOf(Color(0xFFFF8A24), Color(0xFFB83A00))) else Brush.verticalGradient(listOf(Color(0xFF25201D), Color(0xFF0E0D0C))),
+                    container = if (index == 0) Color(0xFF9C3908) else Color(0xFF191513),
                     focusedContainer = Color(0xFFE65A0A),
                     focusScale = 1.035f,
                 ) {
