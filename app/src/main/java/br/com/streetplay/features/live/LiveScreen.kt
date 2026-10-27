@@ -155,10 +155,14 @@ fun LiveScreen(
                     item { GroupHeader("Streaming") }
                     items(streaming, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
                 }
-                item { GroupHeader("Categorias") }
-                items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
-                item { GroupHeader("Países") }
-                items(countries, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                if (cats.isNotEmpty()) {
+                    item { GroupHeader("Categorias") }
+                    items(cats, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                }
+                if (countries.isNotEmpty()) {
+                    item { GroupHeader("Países") }
+                    items(countries, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
+                }
                 if (adult.isNotEmpty()) {
                     item { GroupHeader("Conteúdo adulto") }
                     items(adult, key = { it.id }) { GroupRow(it, it.id == filters.group) { onSelectGroup(it.id) } }
